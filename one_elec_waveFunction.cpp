@@ -76,32 +76,57 @@ void WRLG2(double R, double W, double W0, double W1, double W2, double W3, doubl
 
 }
 
-double CRLG1(int N, int L, int M, double someVar1, double someVar2) {
-    return 0.0;
+double CRLG1(int N, int L, int M, double P, double RZ) {
+	double NU = 2 * (N - L - 1) + M + 1;
+	double MM = M * M;
+	double NN = NU * NU;
+	double C1 = -0.5 * (NN + 1 - MM);
+	double C2 = NU * (NN + 1 - MM);
+	double C3 = MM - 1 - 3 * NN;
+	double C4 = 6 * NN * MM - (1 - MM) * (1 - MM) - 5 * NN * NN - 10 * NN;
+	double C5 = NU * (20 * (NN + 1) - 12 * MM);
+	double C6 = 8 * (MM - 1) - 24 * NN;
+	double C7 = NU * (NN * (33 * NN + 114 - 46 * MM) + 37 + MM * (13 * MM - 50));
+	double C8 = NN * (138 * MM - 342 - 165 * NN) - 37 + MM * (50 - 13 * MM);
+	double C9 = NU * (284 * NN + 292 - 156 * MM);
+	double C10 = NN * (MM * (230 - 39 * MM + 100 * NN) - 239 - NN * (340 + 63 * NN)) - 14 + MM * (30 - MM * (18 - 2 * MM));
+	double C11 = NU * (NN * (1360 + 378 * NN - 400 * MM) + 478 + MM * (78 * MM - 460));
+	double C12 = NN * (630 * MM - 1810 - 845 * NN) - 209 + MM * (250 - 41 * MM);
+	double C13 = NU * (860 * NN + 900 - 460 * MM);
+	double C14 = NU * (NN * (5221 + MM * (465 * MM - 939 * NN - 3750) + NN * (4139 + 527 * NN)) + 1009 - MM * (1591 - MM * (635 - 53 * MM)));
+	double C15 = NN * (MM * (11250 - 1395 * MM + 4695 * NN) - 15663 - NN * (20695 + NN * 3689)) - 1009 + MM * (1591 - MM * (635 - 53 * MM));
+	double C16 = NU * (14072 + NN * (37640 - 9520 * MM + 10128 * NN) - MM * (11640 - 1440 * MM));
+	double C17 = NN * (9780 * MM - 30140 - 13750 * NN) - 3630 + MM * (4140 - 510 * MM);
+	double C18 = NU * (9520 * NN + 10080 - 5040 * MM);
+
+	double S = RZ / (2 * P);
+	return 2 * P * (S - NU) + NU * S + C1 + (C2 + S * (C3 + 2 * NU * S)) / (8 * P) +
+		(C4 + S * (C5 + S * (C6 + 8 * NU * S))) / (64 * P * P) +
+		(C7 + S * (C8 + S * (C9 + S * (8 * C6 + 40 * NU * S)))) / (512 * P * P * P) +
+		(C10 + S * (C11 + S * (C12 + S * (C13 + S * (16 * C6 + 56 * NU * S))))) / (1024 * P * P * P * P) +
+		(C14 + S * (C15 + S * (C16 + S * (C17 + S * (C18 + S * (128 * C6 + 336 * NU * S)))))) / (8192 * P * P * P * P * P);
 }
 
 
-void EXTRAP(double (& X)[100], double(&F)[100], int N) {
+void EXTRAP(vector<double> & X, vector<double> F, int N) {
     // given values of X for i = 0,1,...N-1 and F for i= 0,1,...,N-2 
     int NM2 = N - 2;
-    vector<double> DELTA(8);
+    vector<double> DELTA(999);
     for (int i = 0; i < NM2; ++i) {
         //Assume the functions are approximately liner in X so the divided differences will be nearly constant.
         //First extrapolate to get an estimate of the divided difference corresponding to i = N-1
         DELTA[i] = (F[i + 1] - F[i]) / (X[i + 1] - X[i]);
-        int J = NM2;
-        while (J != 0) {
-            J -= 1;
-            for (int i = 0; i < J; i++) {
-                DELTA[i] = DELTA[i + 1] - DELTA[i];
-            }
-        }
-        double SUM = DELTA[NM2];
-        J = NM2;
-        J -= 1;
-
-        
     }
+    double SUM = DELTA[NM2];
+    int J = NM2;
+    while (J > 0) {
+        --J;
+        if (abs(DELTA[J]) > 0.2 * abs(DELTA[J + 1])) {
+            break;
+        }
+        SUM += DELTA[J];
+    }
+    F[N] = F[N - 1] + (X[N] - X[N - 1]) * SUM;
 
 
 }
@@ -112,8 +137,8 @@ int main()
 {    
     //define constants, As of now not sure their functionality
     vector<int> IACDFT{ 11,11,10,10 };
-    vector<int> IACDFT{ 13,13,10,10 };
-    vector<int> IACDFT{ 10,10,10,10 };
+    vector<int> IACMAX{ 13,13,10,10 };
+    vector<int> IACMIN{ 10,10,10,10 };
     const int IIN{ 2 }, IOUT{ 3 }, IHOLD{1}, IXTRAP{ 10 }, ITMAX{ 50 };
     // ZA, ZB: nuclear charges;
     // N,L,M: UNITED atom quantum number
@@ -130,7 +155,7 @@ int main()
     vector <double> PP(999),CSEP(999), RR(999), ICVGY(999), ICVGX(999);
 
     double rIncr = 0.3;
-    for (int i = 0; i < nPts; ++i) {
+    for (int i = 1; i < nPts+1; ++i) {
         RR[i] = i* rStart;
     }
     int NOPTS{ 1 };
@@ -159,18 +184,19 @@ int main()
     
 
     if (rStart == 0) {
-        PP[0] = 0;
-        CSEP[0] = L * (L + 1);
-        ICVGX[0] = 0;
-        ICVGY[0] = 0;
+        PP[1] = 0;
+        CSEP[1] = L * (L + 1);
+        ICVGX[1] = 0;
+        ICVGY[1] = 0;
         ISTART = 2;
     }
     else {
         ISTART = 1;
         WRLG2(1.0, W, W0, W1, W2, W3, W4, W5, W6);
-        PP[0] = rStart * sqrt(-W / 2);
-        CSEP[0] = CRLG1(N, L, M, PP[0], rStart * Z);
+        PP[1] = rStart * sqrt(-W / 2);
+        CSEP[1] = CRLG1(N, L, M, PP[0], rStart * Z);
     }
+    CSEP[1];
     //Begin loop over R values
     int NR = NOPTS - ISTART + 1;
     for (int i = ISTART; i <= NOPTS; ++i) {
@@ -190,8 +216,9 @@ int main()
             //USE DATA FROM THE IXTRAP(= 10) PREVIOUS POINTS, IF AVAILABLE
             nPts = min(i,IXTRAP);
             int J = i + 1 - nPts;
-            EXTRAP(RR[J], PP[J], nPts);
+            EXTRAP(RR, PP, nPts);
         }
+        PP;
         //evaluate the second term
         PP[1] = 0.5 * R * Z / N;
         double ZK = RZDIF * 0.5 / PP[1];
@@ -211,7 +238,7 @@ int main()
         double C = CSEP[i];
 
     }
-
+    PP;
     
 }
 
