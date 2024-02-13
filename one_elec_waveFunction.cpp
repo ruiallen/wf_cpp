@@ -179,13 +179,12 @@ int main()
     double W{ 0 }, W0{ 0 }, W1{ 0 }, W2{ 0 }, W3{ 0 }, W4{ 0 }, W5{ 0 }, W6{0};
     WRLG1(ZZ, ZP, NS, iDelta, M, 1.0, W, W0 , W1, W2, W3, W4, W5, W6);
 
-    W1;
     // if RJ =0, use RJUMP, else RJ
     double RJ = 1.0;
     rJump = (RJ == 0) ? rJump : RJ;
 
     
-
+    // Now assume rstart = 0. Later work on the case for rstart != 0
     if (rStart == 0) {
         PP[1] = 0;
         CSEP[1] = L * (L + 1);
@@ -216,13 +215,12 @@ int main()
         double RZ = R * Z;
         double RZDIF = R * (ZA - ZB) * SIGN;
         if (i>1){
-            //extrapalote for P and C at current R
+            //extrapolate for P and C at current R
             //USE DATA FROM THE IXTRAP(= 10) PREVIOUS POINTS, IF AVAILABLE
             nPts = min(i,IXTRAP);
             int J = i + 1 - nPts;
             EXTRAP(RR, PP, nPts);
         }
-        PP;
         //evaluate the second term
         PP[1] = 0.5 * R * Z / N;
         double ZK = RZDIF * 0.5 / PP[1];
