@@ -152,12 +152,15 @@ int main()
     double rStart{ 0.0 };
     int Z = ZA + ZB;
     int nPts = 100;
+    double RINCR = 0.3; 
+    // the above should be in a input file in the future
     vector <double> PP(999),CSEP(999), RR(999), ICVGY(999), ICVGX(999);
 
     double rIncr = 0.3;
     for (int i = 1; i < nPts+1; ++i) {
-        RR[i] = i* rStart;
+        RR[i] = (i-1)* RINCR;
     }
+    RR;
     int NOPTS{ 1 };
     int ISTART = NOPTS + 1;
     NOPTS += nPts;
@@ -198,6 +201,7 @@ int main()
     }
 
     //Begin loop over R values
+    // we have already initialized i = 0 case. 
     int NR = NOPTS - ISTART + 1;
     for (int i = ISTART; i <= NOPTS; ++i) {
         double R = RR[i];
@@ -212,7 +216,7 @@ int main()
         double RZ = R * Z;
         double RZDIF = R * (ZA - ZB) * SIGN;
         if (i>1){
-            //extrapolote for P and C at current R
+            //extrapalote for P and C at current R
             //USE DATA FROM THE IXTRAP(= 10) PREVIOUS POINTS, IF AVAILABLE
             nPts = min(i,IXTRAP);
             int J = i + 1 - nPts;
