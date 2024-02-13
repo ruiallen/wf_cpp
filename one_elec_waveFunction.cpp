@@ -196,7 +196,7 @@ int main()
         PP[1] = rStart * sqrt(-W / 2);
         CSEP[1] = CRLG1(N, L, M, PP[0], rStart * Z);
     }
-    CSEP[1];
+
     //Begin loop over R values
     int NR = NOPTS - ISTART + 1;
     for (int i = ISTART; i <= NOPTS; ++i) {
