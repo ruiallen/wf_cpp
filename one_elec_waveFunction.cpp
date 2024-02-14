@@ -108,27 +108,34 @@ double CRLG1(int N, int L, int M, double P, double RZ) {
 }
 
 
-void EXTRAP(vector<double> & X, vector<double> F, int N) {
+void EXTRAP(vector<double> & X, vector<double> &F, int N) {
     // given values of X for i = 0,1,...N-1 and F for i= 0,1,...,N-2 
     int NM2 = N - 2;
     vector<double> DELTA(999);
-    for (int i = 0; i < NM2; ++i) {
+    for (int i = 1; i <= NM2; ++i) {
         //Assume the functions are approximately liner in X so the divided differences will be nearly constant.
         //First extrapolate to get an estimate of the divided difference corresponding to i = N-1
         DELTA[i] = (F[i + 1] - F[i]) / (X[i + 1] - X[i]);
     }
     double SUM = DELTA[NM2];
     int J = NM2;
-    while (J > 0) {
-        --J;
-        if (abs(DELTA[J]) > 0.2 * abs(DELTA[J + 1])) {
-            break;
+    J = J - 1;
+    while (J != 0) {
+        for (int i = 1; i <= J; ++i) {
+            DELTA[i] = DELTA[i + 1] - DELTA[i];
         }
-        SUM += DELTA[J];
-    }
-    F[N] = F[N - 1] + (X[N] - X[N - 1]) * SUM;
-
-
+        J--;
+    }//J = 0, goto 4
+    //4
+    double curSum = DELTA[NM2];
+    J = NM2;
+    J = J - 1;
+	while (J!=0 and not (abs(DELTA[J])>0.2*abs(DELTA[J+1]))) {
+        curSum += DELTA[J];
+		J--;
+	}//J = 0, goto 6
+    F[N] = F[N - 1] + (X[N] - X[N - 1]) * curSum;
+    return;
 }
 
 
@@ -214,13 +221,20 @@ int main()
         }
         double RZ = R * Z;
         double RZDIF = R * (ZA - ZB) * SIGN;
-        if (i>1){
+
+        // three types of terms to evaluate: i = 1, i = 2 and i>2
+        if (i == 2) {
+            continue;
+        }
+        else if (i>2){
             //extrapolate for P and C at current R
-            //USE DATA FROM THE IXTRAP(= 10) PREVIOUS POINTS, IF AVAILABLE
+            //Use data from the previous IXTRAP(= 10) points if available.
             nPts = min(i,IXTRAP);
             int J = i + 1 - nPts;
             EXTRAP(RR, PP, nPts);
         }
+        //else i == 1, do nothing
+        // 
         //evaluate the second term
         PP[1] = 0.5 * R * Z / N;
         double ZK = RZDIF * 0.5 / PP[1];
