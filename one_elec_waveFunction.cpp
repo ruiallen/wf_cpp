@@ -221,40 +221,38 @@ int main()
         }
         double RZ = R * Z;
         double RZDIF = R * (ZA - ZB) * SIGN;
+        PP[2] = 0.5 * R * Z / N;
+        double ZK = RZDIF * 0.5 / PP[2];
+		double DC{ 0 };
+		if (L == 0) {
+			DC = 2 * (1 - ZK * ZK) / 3 * pow(PP[2], 2.0);
+		}
+		else {// L!=0
+			DC = 2 * (((L + 1) * (L + 1) - M * M) * ((L + 1) * (L + 1) - ZK * ZK) / ((L + 1) * (L + L + 3))
+				- (L * L - M * M) * (L * L - ZK * ZK) / (L * (L + L - 1))) / (L + L + 1) * pow(PP[2], 2);
 
+		}
+		CSEP[2] = CSEP[1] + DC;
         // three types of terms to evaluate: i = 1, i = 2 and i>2
-        if (i == 2) {
-            continue;
-        }
-        else if (i>2){
+        if (i>2){
             //extrapolate for P and C at current R
             //Use data from the previous IXTRAP(= 10) points if available.
             nPts = min(i,IXTRAP);
             int J = i + 1 - nPts;
             EXTRAP(RR, PP, nPts);
         }
-        //else i == 1, do nothing
+        //else i = 1 or 2, do nothing
         // 
         //evaluate the second term
-        PP[1] = 0.5 * R * Z / N;
-        double ZK = RZDIF * 0.5 / PP[1];
-        double DC{ 0 };
-        if (L == 0) {
-            DC = 2 * (1 - ZK * ZK) / 3 * pow(PP[2], 2.0);
-        }
-        else {// L!=0
-            DC = 2 * (((L + 1)*(L+1) - M * M) * ((L + 1)*(L+1) - ZK * ZK) / ((L + 1) * (L + L + 3))
-                - (L * L - M * M) * (L * L - ZK * ZK) / (L * (L + L - 1))) / (L + L + 1) * pow(PP[1], 2);
-
-        }
-        CSEP[1] = CSEP[0] + DC;
+        
+        
 
         //goto 7, this is where 7 starts
         double P = PP[i];
         double C = CSEP[i];
-
+        cout << "I: " << i << " P: " << P << endl;
     }
-    PP;
+    
     
 }
 
