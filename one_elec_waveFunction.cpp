@@ -139,6 +139,143 @@ void EXTRAP(vector<double> & X, vector<double> &F, int N) {
 }
 
 
+void CTDFRN(int IGO, double P, double C, double RZ, double RZDIF, int M, double LCHAIN, double LSTART, double ACCY, double CUTOFF, double F, double DFDC, double DFDP,int ICHK) {
+    bool TEST = false;
+    const double scale{ 1e-7 };
+    ICHK = 0;
+    //ignore all outputs in the original Fortran subroutine
+    double ACY = ACCY;
+    int MM = M * M;
+    double P2 = 2 * P * P;
+    int JINCR = 1;
+    //....................................................//
+    //....................................................//
+    //....................................................//
+    //....................................................//
+    double AO = 1;
+    int DAODC = 0;
+    int DAODP = 0;
+    int DADC = 1;
+    int JGO; // JGO is used as a label
+
+
+
+    // initialize vars used in later cases
+    int J{ 0 };
+    double RZDIF2{ 0 };
+    double A{ 0 };
+    double DADP{ 0 };
+    double P4{ 0 };
+    int JJ{ 0 };
+    double ZK{ 0 };
+    double S1{ 0 };
+    double S2{ 0 };
+    double DS1{ 0 };
+    double SIGMA{ 0 };
+    double DSIGMA{ 0 };
+    double DS2{ 0 };
+    switch (IGO) {
+    case 1:
+        J = M;
+        RZDIF2 = RZDIF * RZDIF;
+        A = C - MM - M;
+        DADP = 0;
+        JGO = 4;
+        break;
+    case 2:
+        J = LSTART;
+        P4 = P2 * P2 / 4;
+        JJ = J * J;
+        ASAVE = (MM + JJ + J - 1.0) / (4 * (JJ + J) - 3);
+        A = C - JJ - J - P2 * ASAVE;
+        DADP = -4 * P * ASAVE;
+        //HOmonuclear Y(ETA) requires incr = 2
+        JINCR = 2;
+        JGO = 7;
+        break;
+    case 3:
+        J = 0;
+        ZK = 0.5 * RZDIF / P;
+        S1 = C - MM - M - 2 * P * (M + 1 - ZK);
+        S2 = -4 * P - M - M - 1;
+        DS1 = -2 * (M + 1);
+        A = S1;
+        DADP = DS1;
+        JGO = 8;
+        break;
+    case 4:
+        J = 0;
+        SIGMA = 0.5 * RZ / P - M - 1;
+        S1 = C - RZ - (M + 1) * (M + SIGMA - P - P);
+		S2 = 4 * P - 2 * SIGMA;
+		DSIGMA = -0.5 * RZ / pow(P, 2);
+		DS1 = (M + 1) * (2 - DSIGMA);
+		DS2 = 4 - 2 * DSIGMA;
+		A = S1;
+		DADP = DS1;
+        JGO = 9;
+        break;
+
+        
+
+    }//all cases go to label 40
+    while (J < LCHAIN) {
+        J = J + JINCR;
+        ICHK += 1;
+        if (ICHK == 1000) {
+            std::cout << "Maximum Iteration reached in CDTFRN" << endl;
+            exit(-1);
+        }
+        double JJ = J * J;
+        //initialize variables used later
+        double ASAVE{ 0 };
+        double AJ{ 0 };
+        double BJ{ 0 };
+        double DAJ{ 0 };
+        double DBJ{ 0 };
+        switch (JGO) {
+        case 6:
+            ASAVE = (JJ - MM) / (4 * JJ - 1);
+            AJ = (2 * P2 * JJ - RZDIF2) * ASAVE;
+            BJ = C - JJ - J;
+            DAJ = 8 * P * JJ * ASAVE;
+            DBJ = 0;
+        case 7:
+            AJ = -P4 * (JJ - J - J + 1 - MM) * (JJ - MM) / ((4 * JJ - 8 * J + 3) * (4 * JJ - 1));
+            ASAVE = (MM + JJ + J - 1.0) / (4 * (JJ + J) - 3);
+            BJ = C - JJ - J - P2 * ASAVE;
+            DAJ = 4 * AJ / P;
+            DBJ = -4 * P * ASAVE;
+        case 8:
+            ASAVE = -4 * J * (J + M);
+            DAJ = ASAVE * (J + M);
+            AJ = P * ASAVE * (J + M - ZK);
+            BJ = -JJ + J * S2 + S1;
+            DBJ = DS1 - 4 * J;
+        case 9:
+            ASAVE = -J * (J + M);
+            AJ = ASAVE * (J - 1 - SIGMA) * (J - 1 - SIGMA - M);
+            BJ = S1 + J * S2 + 2 * JJ;
+            DAJ = ASAVE * (M + 2 * (1 - J + SIGMA)) * DSIGMA;
+            DBJ = DS1 + J * DS2;
+        }
+
+
+    }
+    // J >= LCHAIN
+    TEST = true;
+    
+    
+   
+}
+
+void CHAIN(int FChain, int GChain, int IGO, double RZ, double RZDIF, int N, int L, int M, double KS, double P, double C) {
+
+
+
+
+}
+
 
 int main()
 {    
@@ -155,6 +292,7 @@ int main()
 
     // some subroutines require ZA >= Zb
     double ZA = 1.0, ZB = QU;
+    // IGO = 1 , 2, 3 corresponds to Heteronuclear small R, Homo/Heteronuclear larger R for Y(ETA) 
     int IGO = (ZA != ZB) ? 1 : 2;
     double rStart{ 0.0 };
     int Z = ZA + ZB;
