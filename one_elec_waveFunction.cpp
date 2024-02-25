@@ -174,6 +174,7 @@ void CTDFRN(int IGO, double P, double C, double RZ, double RZDIF, int M, double 
     double SIGMA{ 0 };
     double DSIGMA{ 0 };
     double DS2{ 0 };
+    double ASAVE{ 0 };
     switch (IGO) {
     case 1:
         J = M;
@@ -220,6 +221,7 @@ void CTDFRN(int IGO, double P, double C, double RZ, double RZDIF, int M, double 
 
     }//all cases go to label 40
     while (J < LCHAIN) {
+        //label 5 start
         J = J + JINCR;
         ICHK += 1;
         if (ICHK == 1000) {
@@ -233,6 +235,7 @@ void CTDFRN(int IGO, double P, double C, double RZ, double RZDIF, int M, double 
         double BJ{ 0 };
         double DAJ{ 0 };
         double DBJ{ 0 };
+        double DADC{ 0 };
         switch (JGO) {
         case 6:
             ASAVE = (JJ - MM) / (4 * JJ - 1);
@@ -240,31 +243,68 @@ void CTDFRN(int IGO, double P, double C, double RZ, double RZDIF, int M, double 
             BJ = C - JJ - J;
             DAJ = 8 * P * JJ * ASAVE;
             DBJ = 0;
+            if (TEST){ break; }
+                
         case 7:
             AJ = -P4 * (JJ - J - J + 1 - MM) * (JJ - MM) / ((4 * JJ - 8 * J + 3) * (4 * JJ - 1));
             ASAVE = (MM + JJ + J - 1.0) / (4 * (JJ + J) - 3);
             BJ = C - JJ - J - P2 * ASAVE;
             DAJ = 4 * AJ / P;
             DBJ = -4 * P * ASAVE;
+            if (TEST) { break; }
         case 8:
             ASAVE = -4 * J * (J + M);
             DAJ = ASAVE * (J + M);
             AJ = P * ASAVE * (J + M - ZK);
             BJ = -JJ + J * S2 + S1;
             DBJ = DS1 - 4 * J;
+            if (TEST) { break; }
         case 9:
             ASAVE = -J * (J + M);
             AJ = ASAVE * (J - 1 - SIGMA) * (J - 1 - SIGMA - M);
             BJ = S1 + J * S2 + 2 * JJ;
             DAJ = ASAVE * (M + 2 * (1 - J + SIGMA)) * DSIGMA;
             DBJ = DS1 + J * DS2;
-        }
+            if (TEST) { break; }
+        ASAVE = DADC;
+        DADC = A + BJ * DADC + AJ * DAODC;
+        DAODC = ASAVE;
+        ASAVE = DADP;
+        DADP = BJ * DADP + AJ * DAODP + DBJ * A + DAJ * AO;
+        DAODP = ASAVE;
+        ASAVE = A;
+        A = BJ * A + AJ * AO;
+        AO = ASAVE;
+        if (J < LCHAIN) {
+            continue;
+            }
+
+            TEST = true;
+            A = A / AO;
+            DADP = (DADP - A * DAODP) / AO;
+            DADC = (DADC - A * DAODC) / AO;
+            AO = 1;
+            DAODC = 0;
+            DAODP = 0;
+            BO = 0;
+            DBODC = 0;
+            DBODP = 0;
+            B = 1;
+            DBDC = 0;
+            DBDP = 0;
+            RATOLD = A;
+            DIFOLD = 1;
 
 
-    }
-    // J >= LCHAIN
+
+        }//goto 10
+       
+        
+        
+    }//outside while (J>LCHAIN)
     TEST = true;
-    
+    A = A / AO;
+
     
    
 }
