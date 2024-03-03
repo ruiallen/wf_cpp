@@ -367,12 +367,55 @@ label15:
     return;
 }
 
-void CHAIN(int FChain, int GChain, int IGO, double RZ, double RZDIF, int N, int L, int M, double KS, double P, double C) {
-
-
-
-
+void CHAIN(int& FCHAIN, int& GCHAIN, int IGO, double RZ, double RZDIF, int N, int L, int M, double KS, double P, double C) {
+    //Function that determines the values of the continued fraction indices at which we chain
+    int J{ 0 };
+    double SIGMA{ 0 };
+    double A{ 0 };
+    double B{ 0 };
+    double ALPHA{ 0 };
+    double BETA{ 0 };
+    J = N - L - 1;
+    SIGMA = 0.5 * RZ / P - M - 1;
+    A = 2 * P * SIGMA + (M + 1) * (M + SIGMA) - C;
+    B = 2 * (SIGMA - P - P);
+label1:
+    J = J + 1;
+    ALPHA = (J - 1 - SIGMA) * (J - 1 - SIGMA - M);
+    BETA = -2 * J * J + J * B + A;
+    if (abs(ALPHA) > abs(BETA)) { goto label1; }
+    GCHAIN = J - 1;
+    if (IGO != 3) { goto label3; }
+    J = KS;
+    //heteronuclear large R expansion for Y(ETA)
+    A = C - 2 * P * (M + 1) + RZDIF - M * (M + 1);
+label2:
+    J = J + 1;
+    ALPHA = 2 * P * (J + M) - RZDIF;
+    BETA = A - 4 * P * J - J * (J + 1 + M + M);
+    if (abs(ALPHA) > abs(BETA)) { goto label2;}
+    FCHAIN = J - 1;
+    return;
+label3:
+    J = L;
+    if (IGO == 1) { goto label5; }
+    //homonuclear expansion for Y(ETA)
+label4:
+    J = J + 2;
+    ALPHA = P * P * (J - 1 - M) * (J - M) / ((J + J - 3) * (J + J - 1));
+    BETA = C - J * (J + 1) - 2 * P * P * (M * M + J * (J + 1) - 1) / ((J + J + 3) * (J + J - 1));
+    if (abs(ALPHA) > abs(BETA)) { goto label4; }
+    FCHAIN = J - 2;
+    return;
+    //Heternucler Small R expansion for Y(ETA)
+label5:
+    J = J + 1;
+    int TEST = J * J;
+    if (TEST < C) { goto label5; }
+    FCHAIN = J - 1;
+    return;
 }
+
 
 
 int main()
