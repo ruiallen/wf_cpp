@@ -190,7 +190,10 @@ void CTDFRN(int IGO, double P, double C, double RZ, double RZDIF, int M, double 
     double DBDP = 0;
     double RATOLD = A;
     double DIFOLD = 1;
-
+    double AC = 0;
+    double BC = 0;
+    double AP = 0;
+    double BP = 0;
     switch (IGO) {
     case 1:
         J = M;
@@ -318,7 +321,7 @@ label12://start backward evaluation
     if (DIFNEW > 0.1) { goto label13; }
        
     if ((DIFNEW + DIFOLD) <= ACY) {goto label15;}
-    ACP = CUTOFF / DENOM;
+    double ACP = CUTOFF / DENOM;
     if (ACP > 1e-2) { ACP = 1e-4; }
     if (ACY < ACP) { ACY = ACP; }
 label13:
@@ -333,10 +336,25 @@ label13:
     DBODC = BC;
     DBODP = BP;
     goto label5;
+label14://Rescale terms to avoid exponent overflow
+    A = A * SCALE;
+    B = B * SCALE;
+    AO = ASAVE * SCALE;
+    BO = BSAVE * SCALE;
+    DADC = DADC * SCALE;
+    DBDC = DBDC * SCALE;
+    DAODC = AC * SCALE;
+    DBODC = BC * SCALE;
+    DADP = DADP * SCALE;
+    DBDP = DBDP * SCALE;
+    DAODP = AP * SCALE;
+    DBODP = BP * SCALE;
+    goto label5;
+
 label15:
     F = RATNEW;
     
-    if (abs(F - RATOLD) < 1e-12 * abs(F)){goto label 16}
+    if (abs(F - RATOLD) < 1e-12 * abs(F)) { goto label16; }
         
     F = RATVO - (RATOLD - RATVO) * (RATOLD - RATVO) / (F - RATOLD - RATOLD + RATVO);
  label16:   
