@@ -176,12 +176,10 @@ void CTDFRN(int IGO, double P, double C, double RZ, double RZDIF, int M, double 
     double DSIGMA{ 0 };
     double DS2{ 0 };
     double ASAVE{ 0 };
-    double ASAVE{ 0 };
     double AJ{ 0 };
     double BJ{ 0 };
     double DAJ{ 0 };
     double DBJ{ 0 };
-    double DADC{ 0 };
     double BO = 0;
     double DBODC = 0;
     double DBODP = 0;
@@ -194,6 +192,12 @@ void CTDFRN(int IGO, double P, double C, double RZ, double RZDIF, int M, double 
     double BC = 0;
     double AP = 0;
     double BP = 0;
+    double ACP = 0;
+    double BSAVE{ 0 };
+    double RATNEW{ 0 };
+    double DENOM{ 0 };
+    double DIFNEW{ 0 };
+    double RATVO{ 0 };
     switch (IGO) {
     case 1:
         J = M;
@@ -239,7 +243,7 @@ void CTDFRN(int IGO, double P, double C, double RZ, double RZDIF, int M, double 
 label5:
     J = J + JINCR;
     ICHK = ICHK + 1;
-    if (ICHK == 1000) { return -1; }
+    if (ICHK == 1000) { cout << "Errors" << endl; return; }
     JJ = J * J;
     switch (JGO) {
     case 6:
@@ -315,13 +319,13 @@ label12://start backward evaluation
     BSAVE = B;
     B = BJ * B + AJ * BO;
     RATNEW = A / B;
-    DENOM = DABS(RATNEW) + SCALE; //avoid possible divide by zero
+    DENOM = abs(RATNEW) + SCALE; //avoid possible divide by zero
        
-    DIFNEW = DABS(RATNEW - RATOLD) / DENOM;
+    DIFNEW = abs(RATNEW - RATOLD) / DENOM;
     if (DIFNEW > 0.1) { goto label13; }
        
     if ((DIFNEW + DIFOLD) <= ACY) {goto label15;}
-    double ACP = CUTOFF / DENOM;
+    ACP = CUTOFF / DENOM;
     if (ACP > 1e-2) { ACP = 1e-4; }
     if (ACY < ACP) { ACY = ACP; }
 label13:
