@@ -140,8 +140,9 @@ void EXTRAP(vector<double> & X, vector<double> &F, int N) {
 
 
 void CTDFRN(int IGO, double P, double C, double RZ, double RZDIF, int M, double LCHAIN, double LSTART, double ACCY, double CUTOFF, double F, double DFDC, double DFDP,int ICHK) {
+
     bool TEST = false;
-    const double scale{ 1e-7 };
+    const double SCALE{ 1e-7 };
     ICHK = 0;
     //ignore all outputs in the original Fortran subroutine
     double ACY = ACCY;
@@ -175,6 +176,21 @@ void CTDFRN(int IGO, double P, double C, double RZ, double RZDIF, int M, double 
     double DSIGMA{ 0 };
     double DS2{ 0 };
     double ASAVE{ 0 };
+    double ASAVE{ 0 };
+    double AJ{ 0 };
+    double BJ{ 0 };
+    double DAJ{ 0 };
+    double DBJ{ 0 };
+    double DADC{ 0 };
+    double BO = 0;
+    double DBODC = 0;
+    double DBODP = 0;
+    double B = 1;
+    double DBDC = 0;
+    double DBDP = 0;
+    double RATOLD = A;
+    double DIFOLD = 1;
+
     switch (IGO) {
     case 1:
         J = M;
@@ -230,12 +246,7 @@ void CTDFRN(int IGO, double P, double C, double RZ, double RZDIF, int M, double 
         }
         double JJ = J * J;
         //initialize variables used later
-        double ASAVE{ 0 };
-        double AJ{ 0 };
-        double BJ{ 0 };
-        double DAJ{ 0 };
-        double DBJ{ 0 };
-        double DADC{ 0 };
+ 
         switch (JGO) {
         case 6:
             ASAVE = (JJ - MM) / (4 * JJ - 1);
@@ -243,7 +254,55 @@ void CTDFRN(int IGO, double P, double C, double RZ, double RZDIF, int M, double 
             BJ = C - JJ - J;
             DAJ = 8 * P * JJ * ASAVE;
             DBJ = 0;
-            if (TEST){ break; }
+            if (TEST){ 
+                AC = DADC;
+                DADC = A + BJ * DADC + AJ * DAODC;
+                BC = DBDC;
+                DBDC = B + BJ * DBDC + AJ * DBODC;
+                AP = DADP;
+                DADP = BJ * DADP + AJ * DAODP + DBJ * A + DAJ * AO;
+                BP = DBDP;
+                DBDP = BJ * DBDP + AJ * DBODP + DBJ * B + DAJ * BO;
+                ASAVE = A;
+                A = BJ * A + AJ * AO;
+                BSAVE = B;
+                B = BJ * B + AJ * BO;
+                RATNEW = A / B;
+                DENOM = DABS(RATNEW) + SCALE;//avoid possible division by zero
+                DIFNEW = DABS(RATNEW - RATOLD) / DENOM;
+                if (DIFNEW>0.1) {//goto 13
+                    DIFOLD = DIFNEW;
+                    RATVO = RATOLD;
+                    RATOLD = RATNEW;
+                    if (abs(B) > 1e5) {//go to 14
+                        A = A * SCALE;
+                        B = B * SCALE;
+                        AO = ASAVE * SCALE;
+                        BO = BSAVE * SCALE;
+                        DADC = DADC * SCALE;
+                        DBDC = DBDC * SCALE;
+                        DAODC = AC * SCALE;
+                        DBODC = BC * SCALE;
+                        DADP = DADP * SCALE;
+                        DBDP = DBDP * SCALE;
+                        DAODP = AP * SCALE;
+                        DBODP = BP * SCALE;
+                    }
+                    AO = ASAVE;
+                    BO = BSAVE;
+                    DAODC = AC;
+                    DAODP = AP;
+                    DBODC = BC;
+                    DBODP = BP;
+                    continue; //go back to 5
+                }
+                if (DIFNEW + DIFOLD <= ACY) {//goto 15
+
+                }
+                ACP = CUTOFF / DENOM;
+                if (ACP > 0.01) { ACP = 1e-4; }
+                if (ACY < ACP) ACY = ACP;
+            } //goto 12 in all cases
                 
         case 7:
             AJ = -P4 * (JJ - J - J + 1 - MM) * (JJ - MM) / ((4 * JJ - 8 * J + 3) * (4 * JJ - 1));
@@ -275,28 +334,23 @@ void CTDFRN(int IGO, double P, double C, double RZ, double RZDIF, int M, double 
         ASAVE = A;
         A = BJ * A + AJ * AO;
         AO = ASAVE;
-        if (J < LCHAIN) {
-            continue;
-            }
+        if (J < LCHAIN) {continue;} // skip all the folloing exectutions and go back to the begi
 
-            TEST = true;
-            A = A / AO;
-            DADP = (DADP - A * DAODP) / AO;
-            DADC = (DADC - A * DAODC) / AO;
-            AO = 1;
-            DAODC = 0;
-            DAODP = 0;
-            BO = 0;
-            DBODC = 0;
-            DBODP = 0;
-            B = 1;
-            DBDC = 0;
-            DBDP = 0;
-            RATOLD = A;
-            DIFOLD = 1;
-
-
-
+        TEST = true;
+        A = A / AO;
+        DADP = (DADP - A * DAODP) / AO;
+        DADC = (DADC - A * DAODC) / AO;
+        AO = 1;
+        DAODC = 0;
+        DAODP = 0;
+        BO = 0;
+        DBODC = 0;
+        DBODP = 0;
+        B = 1;
+        DBDC = 0;
+        DBDP = 0;
+        RATOLD = A;
+        DIFOLD = 1;
         }//goto 10
        
         
