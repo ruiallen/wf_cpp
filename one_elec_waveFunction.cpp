@@ -198,7 +198,7 @@ void CTDFRN(int IGO, double P, double C, double RZ, double RZDIF, int M, double 
         A = C - MM - M;
         DADP = 0;
         JGO = 4;
-        break;
+        goto label40;
     case 2:
         J = LSTART;
         P4 = P2 * P2 / 4;
@@ -209,7 +209,7 @@ void CTDFRN(int IGO, double P, double C, double RZ, double RZDIF, int M, double 
         //HOmonuclear Y(ETA) requires incr = 2
         JINCR = 2;
         JGO = 7;
-        break;
+        goto label40;
     case 3:
         J = 0;
         ZK = 0.5 * RZDIF / P;
@@ -219,7 +219,7 @@ void CTDFRN(int IGO, double P, double C, double RZ, double RZDIF, int M, double 
         A = S1;
         DADP = DS1;
         JGO = 8;
-        break;
+        goto label40;
     case 4:
         J = 0;
         SIGMA = 0.5 * RZ / P - M - 1;
@@ -231,136 +231,118 @@ void CTDFRN(int IGO, double P, double C, double RZ, double RZDIF, int M, double 
 		A = S1;
 		DADP = DS1;
         JGO = 9;
-        break;
-
-        
-
+        goto label40;;
     }//all cases go to label 40
-    while (J < LCHAIN) {
-        //label 5 start
-        J = J + JINCR;
-        ICHK += 1;
-        if (ICHK == 1000) {
-            std::cout << "Maximum Iteration reached in CDTFRN" << endl;
-            exit(-1);
-        }
-        double JJ = J * J;
-        //initialize variables used later
- 
-        switch (JGO) {
-        case 6:
-            ASAVE = (JJ - MM) / (4 * JJ - 1);
-            AJ = (2 * P2 * JJ - RZDIF2) * ASAVE;
-            BJ = C - JJ - J;
-            DAJ = 8 * P * JJ * ASAVE;
-            DBJ = 0;
-            if (TEST){ 
-                AC = DADC;
-                DADC = A + BJ * DADC + AJ * DAODC;
-                BC = DBDC;
-                DBDC = B + BJ * DBDC + AJ * DBODC;
-                AP = DADP;
-                DADP = BJ * DADP + AJ * DAODP + DBJ * A + DAJ * AO;
-                BP = DBDP;
-                DBDP = BJ * DBDP + AJ * DBODP + DBJ * B + DAJ * BO;
-                ASAVE = A;
-                A = BJ * A + AJ * AO;
-                BSAVE = B;
-                B = BJ * B + AJ * BO;
-                RATNEW = A / B;
-                DENOM = DABS(RATNEW) + SCALE;//avoid possible division by zero
-                DIFNEW = DABS(RATNEW - RATOLD) / DENOM;
-                if (DIFNEW>0.1) {//goto 13
-                    DIFOLD = DIFNEW;
-                    RATVO = RATOLD;
-                    RATOLD = RATNEW;
-                    if (abs(B) > 1e5) {//go to 14
-                        A = A * SCALE;
-                        B = B * SCALE;
-                        AO = ASAVE * SCALE;
-                        BO = BSAVE * SCALE;
-                        DADC = DADC * SCALE;
-                        DBDC = DBDC * SCALE;
-                        DAODC = AC * SCALE;
-                        DBODC = BC * SCALE;
-                        DADP = DADP * SCALE;
-                        DBDP = DBDP * SCALE;
-                        DAODP = AP * SCALE;
-                        DBODP = BP * SCALE;
-                    }
-                    AO = ASAVE;
-                    BO = BSAVE;
-                    DAODC = AC;
-                    DAODP = AP;
-                    DBODC = BC;
-                    DBODP = BP;
-                    continue; //go back to 5
-                }
-                if (DIFNEW + DIFOLD <= ACY) {//goto 15
+label5:
+    J = J + JINCR;
+    ICHK = ICHK + 1;
+    if (ICHK == 1000) { return -1; }
+    JJ = J * J;
+    switch (JGO) {
+    case 6:
+        ASAVE = (JJ - MM) / (4 * JJ - 1);
+        AJ = (2 * P2 * JJ - RZDIF2) * ASAVE;
+        BJ = C - JJ - J;
+        DAJ = 8 * P * JJ * ASAVE;
+        DBJ = 0;
+        goto label10;
 
-                }
-                ACP = CUTOFF / DENOM;
-                if (ACP > 0.01) { ACP = 1e-4; }
-                if (ACY < ACP) ACY = ACP;
-            } //goto 12 in all cases
-                
-        case 7:
-            AJ = -P4 * (JJ - J - J + 1 - MM) * (JJ - MM) / ((4 * JJ - 8 * J + 3) * (4 * JJ - 1));
-            ASAVE = (MM + JJ + J - 1.0) / (4 * (JJ + J) - 3);
-            BJ = C - JJ - J - P2 * ASAVE;
-            DAJ = 4 * AJ / P;
-            DBJ = -4 * P * ASAVE;
-            if (TEST) { break; }
-        case 8:
-            ASAVE = -4 * J * (J + M);
-            DAJ = ASAVE * (J + M);
-            AJ = P * ASAVE * (J + M - ZK);
-            BJ = -JJ + J * S2 + S1;
-            DBJ = DS1 - 4 * J;
-            if (TEST) { break; }
-        case 9:
-            ASAVE = -J * (J + M);
-            AJ = ASAVE * (J - 1 - SIGMA) * (J - 1 - SIGMA - M);
-            BJ = S1 + J * S2 + 2 * JJ;
-            DAJ = ASAVE * (M + 2 * (1 - J + SIGMA)) * DSIGMA;
-            DBJ = DS1 + J * DS2;
-            if (TEST) { break; }
-        ASAVE = DADC;
-        DADC = A + BJ * DADC + AJ * DAODC;
-        DAODC = ASAVE;
-        ASAVE = DADP;
-        DADP = BJ * DADP + AJ * DAODP + DBJ * A + DAJ * AO;
-        DAODP = ASAVE;
-        ASAVE = A;
-        A = BJ * A + AJ * AO;
-        AO = ASAVE;
-        if (J < LCHAIN) {continue;} // skip all the folloing exectutions and go back to the begi
-
-        TEST = true;
-        A = A / AO;
-        DADP = (DADP - A * DAODP) / AO;
-        DADC = (DADC - A * DAODC) / AO;
-        AO = 1;
-        DAODC = 0;
-        DAODP = 0;
-        BO = 0;
-        DBODC = 0;
-        DBODP = 0;
-        B = 1;
-        DBDC = 0;
-        DBDP = 0;
-        RATOLD = A;
-        DIFOLD = 1;
-        }//goto 10
-       
-        
-        
-    }//outside while (J>LCHAIN)
+    case 7:
+        AJ = -P4 * (JJ - J - J + 1 - MM) * (JJ - MM) / ((4 * JJ - 8 * J + 3) * (4 * JJ - 1));
+        ASAVE = (MM + JJ + J - 1.0) / (4 * (JJ + J) - 3);
+        BJ = C - JJ - J - P2 * ASAVE;
+        DAJ = 4 * AJ / P;
+        DBJ = -4 * P * ASAVE;
+        goto label10;
+    case 8:
+        ASAVE = -4 * J * (J + M);
+        DAJ = ASAVE * (J + M);
+        AJ = P * ASAVE * (J + M - ZK);
+        BJ = -JJ + J * S2 + S1;
+        DBJ = DS1 - 4 * J;
+        goto label10;
+    case 9:
+        ASAVE = -J * (J + M);
+        AJ = ASAVE * (J - 1 - SIGMA) * (J - 1 - SIGMA - M);
+        BJ = S1 + J * S2 + 2 * JJ;
+        DAJ = ASAVE * (M + 2 * (1 - J + SIGMA)) * DSIGMA;
+        DBJ = DS1 + J * DS2;
+        goto label10;
+    }
+label10:
+    if (TEST) { goto label12; }
+    ASAVE = DADC;
+    DADC = A + BJ * DADC + AJ * DAODC;
+    DAODC = ASAVE;
+    ASAVE = DADP;
+    DADP = BJ * DADP + AJ * DAODP + DBJ * A + DAJ * AO;
+    DAODP = ASAVE;
+    ASAVE = A;
+    A = BJ * A + AJ * AO;
+    AO = ASAVE;
+label40:
+    if (J < LCHAIN) { goto label5; }
     TEST = true;
     A = A / AO;
-
+    DADP = (DADP - A * DAODP) / AO;
+    DADC = (DADC - A * DAODC) / AO;
+    AO = 1;
+    DAODC = 0;
+    DAODP = 0;
+    BO = 0;
+    DBODC = 0;
+    DBODP = 0;
+    B = 1;
+    DBDC = 0;
+    DBDP = 0;
+    RATOLD = A;
+    DIFOLD = 1;
+    goto label5;
+label12://start backward evaluation
+    AC = DADC;
+    DADC = A + BJ * DADC + AJ * DAODC;
+    BC = DBDC;
+    DBDC = B + BJ * DBDC + AJ * DBODC;
+    AP = DADP;
+    DADP = BJ * DADP + AJ * DAODP + DBJ * A + DAJ * AO;
+    BP = DBDP;
+    DBDP = BJ * DBDP + AJ * DBODP + DBJ * B + DAJ * BO;
+    ASAVE = A;
+    A = BJ * A + AJ * AO;
+    BSAVE = B;
+    B = BJ * B + AJ * BO;
+    RATNEW = A / B;
+    DENOM = DABS(RATNEW) + SCALE; //avoid possible divide by zero
+       
+    DIFNEW = DABS(RATNEW - RATOLD) / DENOM;
+    if (DIFNEW > 0.1) { goto label13; }
+       
+    if ((DIFNEW + DIFOLD) <= ACY) {goto label15;}
+    ACP = CUTOFF / DENOM;
+    if (ACP > 1e-2) { ACP = 1e-4; }
+    if (ACY < ACP) { ACY = ACP; }
+label13:
+    DIFOLD = DIFNEW;
+    RATVO = RATOLD;
+    RATOLD = RATNEW;
+    if (abs(B) > 1e5) { goto label14; }
+    AO = ASAVE;
+    BO = BSAVE;
+    DAODC = AC;
+    DAODP = AP;
+    DBODC = BC;
+    DBODP = BP;
+    goto label5;
+label15:
+    F = RATNEW;
     
-   
+    if (abs(F - RATOLD) < 1e-12 * abs(F)){goto label 16}
+        
+    F = RATVO - (RATOLD - RATVO) * (RATOLD - RATVO) / (F - RATOLD - RATOLD + RATVO);
+ label16:   
+    DFDC = (DADC - F * DBDC) / B;
+    DFDP = (DADP - F * DBDP) / B;
+    return;
 }
 
 void CHAIN(int FChain, int GChain, int IGO, double RZ, double RZDIF, int N, int L, int M, double KS, double P, double C) {
