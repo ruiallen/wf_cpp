@@ -139,7 +139,7 @@ void EXTRAP(vector<double> & X, vector<double> &F, int N) {
 }
 
 
-void CTDFRN(int IGO, double& P, double& C, double RZ, double RZDIF, int M, double LCHAIN, double LSTART, double ACCY, double CUTOFF, double& F, double DFDC, double DFDP,int ICHK) {
+void CTDFRN(int IGO, double& P, double& C, double RZ, double RZDIF, int M, double LCHAIN, double LSTART, double ACCY, double CUTOFF, double& F, double &DFDC, double &DFDP,int &ICHK) {
 
     bool TEST = false;
     const double SCALE{ 1e-7 };
