@@ -139,7 +139,7 @@ void EXTRAP(vector<double> & X, vector<double> &F, int N) {
 }
 
 
-void CTDFRN(int IGO, double P, double C, double RZ, double RZDIF, int M, double LCHAIN, double LSTART, double ACCY, double CUTOFF, double F, double DFDC, double DFDP,int ICHK) {
+void CTDFRN(int IGO, double& P, double& C, double RZ, double RZDIF, int M, double LCHAIN, double LSTART, double ACCY, double CUTOFF, double& F, double &DFDC, double &DFDP,int &ICHK) {
 
     bool TEST = false;
     const double SCALE{ 1e-7 };
@@ -176,12 +176,10 @@ void CTDFRN(int IGO, double P, double C, double RZ, double RZDIF, int M, double 
     double DSIGMA{ 0 };
     double DS2{ 0 };
     double ASAVE{ 0 };
-    double ASAVE{ 0 };
     double AJ{ 0 };
     double BJ{ 0 };
     double DAJ{ 0 };
     double DBJ{ 0 };
-    double DADC{ 0 };
     double BO = 0;
     double DBODC = 0;
     double DBODP = 0;
@@ -190,7 +188,16 @@ void CTDFRN(int IGO, double P, double C, double RZ, double RZDIF, int M, double 
     double DBDP = 0;
     double RATOLD = A;
     double DIFOLD = 1;
-
+    double AC = 0;
+    double BC = 0;
+    double AP = 0;
+    double BP = 0;
+    double ACP = 0;
+    double BSAVE{ 0 };
+    double RATNEW{ 0 };
+    double DENOM{ 0 };
+    double DIFNEW{ 0 };
+    double RATVO{ 0 };
     switch (IGO) {
     case 1:
         J = M;
@@ -198,7 +205,7 @@ void CTDFRN(int IGO, double P, double C, double RZ, double RZDIF, int M, double 
         A = C - MM - M;
         DADP = 0;
         JGO = 4;
-        break;
+        goto label40;
     case 2:
         J = LSTART;
         P4 = P2 * P2 / 4;
@@ -209,7 +216,7 @@ void CTDFRN(int IGO, double P, double C, double RZ, double RZDIF, int M, double 
         //HOmonuclear Y(ETA) requires incr = 2
         JINCR = 2;
         JGO = 7;
-        break;
+        goto label40;
     case 3:
         J = 0;
         ZK = 0.5 * RZDIF / P;
@@ -219,7 +226,7 @@ void CTDFRN(int IGO, double P, double C, double RZ, double RZDIF, int M, double 
         A = S1;
         DADP = DS1;
         JGO = 8;
-        break;
+        goto label40;
     case 4:
         J = 0;
         SIGMA = 0.5 * RZ / P - M - 1;
@@ -231,158 +238,213 @@ void CTDFRN(int IGO, double P, double C, double RZ, double RZDIF, int M, double 
 		A = S1;
 		DADP = DS1;
         JGO = 9;
-        break;
-
-        
-
+        goto label40;;
     }//all cases go to label 40
-    while (J < LCHAIN) {
-        //label 5 start
-        J = J + JINCR;
-        ICHK += 1;
-        if (ICHK == 1000) {
-            std::cout << "Maximum Iteration reached in CDTFRN" << endl;
-            exit(-1);
-        }
-        double JJ = J * J;
-        //initialize variables used later
- 
-        switch (JGO) {
-        case 6:
-            ASAVE = (JJ - MM) / (4 * JJ - 1);
-            AJ = (2 * P2 * JJ - RZDIF2) * ASAVE;
-            BJ = C - JJ - J;
-            DAJ = 8 * P * JJ * ASAVE;
-            DBJ = 0;
-            if (TEST){ 
-                AC = DADC;
-                DADC = A + BJ * DADC + AJ * DAODC;
-                BC = DBDC;
-                DBDC = B + BJ * DBDC + AJ * DBODC;
-                AP = DADP;
-                DADP = BJ * DADP + AJ * DAODP + DBJ * A + DAJ * AO;
-                BP = DBDP;
-                DBDP = BJ * DBDP + AJ * DBODP + DBJ * B + DAJ * BO;
-                ASAVE = A;
-                A = BJ * A + AJ * AO;
-                BSAVE = B;
-                B = BJ * B + AJ * BO;
-                RATNEW = A / B;
-                DENOM = DABS(RATNEW) + SCALE;//avoid possible division by zero
-                DIFNEW = DABS(RATNEW - RATOLD) / DENOM;
-                if (DIFNEW>0.1) {//goto 13
-                    DIFOLD = DIFNEW;
-                    RATVO = RATOLD;
-                    RATOLD = RATNEW;
-                    if (abs(B) > 1e5) {//go to 14
-                        A = A * SCALE;
-                        B = B * SCALE;
-                        AO = ASAVE * SCALE;
-                        BO = BSAVE * SCALE;
-                        DADC = DADC * SCALE;
-                        DBDC = DBDC * SCALE;
-                        DAODC = AC * SCALE;
-                        DBODC = BC * SCALE;
-                        DADP = DADP * SCALE;
-                        DBDP = DBDP * SCALE;
-                        DAODP = AP * SCALE;
-                        DBODP = BP * SCALE;
-                    }
-                    AO = ASAVE;
-                    BO = BSAVE;
-                    DAODC = AC;
-                    DAODP = AP;
-                    DBODC = BC;
-                    DBODP = BP;
-                    continue; //go back to 5
-                }
-                if (DIFNEW + DIFOLD <= ACY) {//goto 15
+label5:
+    J = J + JINCR;
+    ICHK = ICHK + 1;
+    if (ICHK == 1000) { cout << "Errors" << endl; return; }
+    JJ = J * J;
+    switch (JGO) {
+    case 6:
+        ASAVE = (JJ - MM) / (4 * JJ - 1);
+        AJ = (2 * P2 * JJ - RZDIF2) * ASAVE;
+        BJ = C - JJ - J;
+        DAJ = 8 * P * JJ * ASAVE;
+        DBJ = 0;
+        goto label10;
 
-                }
-                ACP = CUTOFF / DENOM;
-                if (ACP > 0.01) { ACP = 1e-4; }
-                if (ACY < ACP) ACY = ACP;
-            } //goto 12 in all cases
-                
-        case 7:
-            AJ = -P4 * (JJ - J - J + 1 - MM) * (JJ - MM) / ((4 * JJ - 8 * J + 3) * (4 * JJ - 1));
-            ASAVE = (MM + JJ + J - 1.0) / (4 * (JJ + J) - 3);
-            BJ = C - JJ - J - P2 * ASAVE;
-            DAJ = 4 * AJ / P;
-            DBJ = -4 * P * ASAVE;
-            if (TEST) { break; }
-        case 8:
-            ASAVE = -4 * J * (J + M);
-            DAJ = ASAVE * (J + M);
-            AJ = P * ASAVE * (J + M - ZK);
-            BJ = -JJ + J * S2 + S1;
-            DBJ = DS1 - 4 * J;
-            if (TEST) { break; }
-        case 9:
-            ASAVE = -J * (J + M);
-            AJ = ASAVE * (J - 1 - SIGMA) * (J - 1 - SIGMA - M);
-            BJ = S1 + J * S2 + 2 * JJ;
-            DAJ = ASAVE * (M + 2 * (1 - J + SIGMA)) * DSIGMA;
-            DBJ = DS1 + J * DS2;
-            if (TEST) { break; }
-        ASAVE = DADC;
-        DADC = A + BJ * DADC + AJ * DAODC;
-        DAODC = ASAVE;
-        ASAVE = DADP;
-        DADP = BJ * DADP + AJ * DAODP + DBJ * A + DAJ * AO;
-        DAODP = ASAVE;
-        ASAVE = A;
-        A = BJ * A + AJ * AO;
-        AO = ASAVE;
-        if (J < LCHAIN) {continue;} // skip all the folloing exectutions and go back to the begi
-
-        TEST = true;
-        A = A / AO;
-        DADP = (DADP - A * DAODP) / AO;
-        DADC = (DADC - A * DAODC) / AO;
-        AO = 1;
-        DAODC = 0;
-        DAODP = 0;
-        BO = 0;
-        DBODC = 0;
-        DBODP = 0;
-        B = 1;
-        DBDC = 0;
-        DBDP = 0;
-        RATOLD = A;
-        DIFOLD = 1;
-        }//goto 10
-       
-        
-        
-    }//outside while (J>LCHAIN)
+    case 7:
+        AJ = -P4 * (JJ - J - J + 1 - MM) * (JJ - MM) / ((4 * JJ - 8 * J + 3) * (4 * JJ - 1));
+        ASAVE = (MM + JJ + J - 1.0) / (4 * (JJ + J) - 3);
+        BJ = C - JJ - J - P2 * ASAVE;
+        DAJ = 4 * AJ / P;
+        DBJ = -4 * P * ASAVE;
+        goto label10;
+    case 8:
+        ASAVE = -4 * J * (J + M);
+        DAJ = ASAVE * (J + M);
+        AJ = P * ASAVE * (J + M - ZK);
+        BJ = -JJ + J * S2 + S1;
+        DBJ = DS1 - 4 * J;
+        goto label10;
+    case 9:
+        ASAVE = -J * (J + M);
+        AJ = ASAVE * (J - 1 - SIGMA) * (J - 1 - SIGMA - M);
+        BJ = S1 + J * S2 + 2 * JJ;
+        DAJ = ASAVE * (M + 2 * (1 - J + SIGMA)) * DSIGMA;
+        DBJ = DS1 + J * DS2;
+        goto label10;
+    }
+label10:
+    if (TEST) { goto label12; }
+    ASAVE = DADC;
+    DADC = A + BJ * DADC + AJ * DAODC;
+    DAODC = ASAVE;
+    ASAVE = DADP;
+    DADP = BJ * DADP + AJ * DAODP + DBJ * A + DAJ * AO;
+    DAODP = ASAVE;
+    ASAVE = A;
+    A = BJ * A + AJ * AO;
+    AO = ASAVE;
+label40:
+    if (J < LCHAIN) { goto label5; }
     TEST = true;
     A = A / AO;
+    DADP = (DADP - A * DAODP) / AO;
+    DADC = (DADC - A * DAODC) / AO;
+    AO = 1;
+    DAODC = 0;
+    DAODP = 0;
+    BO = 0;
+    DBODC = 0;
+    DBODP = 0;
+    B = 1;
+    DBDC = 0;
+    DBDP = 0;
+    RATOLD = A;
+    DIFOLD = 1;
+    goto label5;
+label12://start backward evaluation
+    AC = DADC;
+    DADC = A + BJ * DADC + AJ * DAODC;
+    BC = DBDC;
+    DBDC = B + BJ * DBDC + AJ * DBODC;
+    AP = DADP;
+    DADP = BJ * DADP + AJ * DAODP + DBJ * A + DAJ * AO;
+    BP = DBDP;
+    DBDP = BJ * DBDP + AJ * DBODP + DBJ * B + DAJ * BO;
+    ASAVE = A;
+    A = BJ * A + AJ * AO;
+    BSAVE = B;
+    B = BJ * B + AJ * BO;
+    RATNEW = A / B;
+    DENOM = abs(RATNEW) + SCALE; //avoid possible divide by zero
+       
+    DIFNEW = abs(RATNEW - RATOLD) / DENOM;
+    if (DIFNEW > 0.1) { goto label13; }
+       
+    if ((DIFNEW + DIFOLD) <= ACY) {goto label15;}
+    ACP = CUTOFF / DENOM;
+    if (ACP > 1e-2) { ACP = 1e-4; }
+    if (ACY < ACP) { ACY = ACP; }
+label13:
+    DIFOLD = DIFNEW;
+    RATVO = RATOLD;
+    RATOLD = RATNEW;
+    if (abs(B) > 1e5) { goto label14; }
+    AO = ASAVE;
+    BO = BSAVE;
+    DAODC = AC;
+    DAODP = AP;
+    DBODC = BC;
+    DBODP = BP;
+    goto label5;
+label14://Rescale terms to avoid exponent overflow
+    A = A * SCALE;
+    B = B * SCALE;
+    AO = ASAVE * SCALE;
+    BO = BSAVE * SCALE;
+    DADC = DADC * SCALE;
+    DBDC = DBDC * SCALE;
+    DAODC = AC * SCALE;
+    DBODC = BC * SCALE;
+    DADP = DADP * SCALE;
+    DBDP = DBDP * SCALE;
+    DAODP = AP * SCALE;
+    DBODP = BP * SCALE;
+    goto label5;
 
+label15:
+    F = RATNEW;
     
-   
+    if (abs(F - RATOLD) < 1e-12 * abs(F)) { goto label16; }
+        
+    F = RATVO - (RATOLD - RATVO) * (RATOLD - RATVO) / (F - RATOLD - RATOLD + RATVO);
+ label16:   
+    DFDC = (DADC - F * DBDC) / B;
+    DFDP = (DADP - F * DBDP) / B;
+    return;
 }
 
-void CHAIN(int FChain, int GChain, int IGO, double RZ, double RZDIF, int N, int L, int M, double KS, double P, double C) {
-
-
-
-
+void CHAIN(int& FCHAIN, int& GCHAIN, int IGO, double RZ, double RZDIF, int N, int L, int M, double KS, double P, double C) {
+    //Function that determines the values of the continued fraction indices at which we chain
+    int J{ 0 };
+    double SIGMA{ 0 };
+    double A{ 0 };
+    double B{ 0 };
+    double ALPHA{ 0 };
+    double BETA{ 0 };
+    J = N - L - 1;
+    SIGMA = 0.5 * RZ / P - M - 1;
+    A = 2 * P * SIGMA + (M + 1) * (M + SIGMA) - C;
+    B = 2 * (SIGMA - P - P);
+label1:
+    J = J + 1;
+    ALPHA = (J - 1 - SIGMA) * (J - 1 - SIGMA - M);
+    BETA = -2 * J * J + J * B + A;
+    if (abs(ALPHA) > abs(BETA)) { goto label1; }
+    GCHAIN = J - 1;
+    if (IGO != 3) { goto label3; }
+    J = KS;
+    //heteronuclear large R expansion for Y(ETA)
+    A = C - 2 * P * (M + 1) + RZDIF - M * (M + 1);
+label2:
+    J = J + 1;
+    ALPHA = 2 * P * (J + M) - RZDIF;
+    BETA = A - 4 * P * J - J * (J + 1 + M + M);
+    if (abs(ALPHA) > abs(BETA)) { goto label2;}
+    FCHAIN = J - 1;
+    return;
+label3:
+    J = L;
+    if (IGO == 1) { goto label5; }
+    //homonuclear expansion for Y(ETA)
+label4:
+    J = J + 2;
+    ALPHA = P * P * (J - 1 - M) * (J - M) / ((J + J - 3) * (J + J - 1));
+    BETA = C - J * (J + 1) - 2 * P * P * (M * M + J * (J + 1) - 1) / ((J + J + 3) * (J + J - 1));
+    if (abs(ALPHA) > abs(BETA)) { goto label4; }
+    FCHAIN = J - 2;
+    return;
+    //Heternucler Small R expansion for Y(ETA)
+label5:
+    J = J + 1;
+    int TEST = J * J;
+    if (TEST < C) { goto label5; }
+    FCHAIN = J - 1;
+    return;
 }
+
 
 
 int main()
-{    
+{
     //define constants, As of now not sure their functionality
-    vector<int> IACDFT{ 11,11,10,10 };
-    vector<int> IACMAX{ 13,13,10,10 };
-    vector<int> IACMIN{ 10,10,10,10 };
-    const int IIN{ 2 }, IOUT{ 3 }, IHOLD{1}, IXTRAP{ 10 }, ITMAX{ 50 };
+    vector<int> IACDFT{ 0,11,11,10,10 };
+    vector<int> IACMAX{ 0,13,13,10,10 };
+    vector<int> IACMIN{ 0,10,10,10,10 };
+    vector<double> IAC(5);
+    vector<double> AC(5);
+    double* PAC = &AC[1];
+    double* CAC = &AC[2];
+    double* ACCIN = &AC[3];
+    double* ACCOUT = &AC[4];
+    double F{ 0 };
+    double G{ 0 };
+    const int IIN{ 2 }, IOUT{ 3 }, IHOLD{ 1 }, IXTRAP{ 10 }, ITMAX{ 50 };
+    int FCHAIN{ 0 };
+    int GCHAIN{ 0 };
+    int lStart{ 0 };
+    double DFDC{ 0 };
+    double DFDP{ 0 };
+    int NCVIN{ 0 };
     // ZA, ZB: nuclear charges;
     // N,L,M: UNITED atom quantum number
     int QU{ 1 };
     int N{ 1 }, L{ 0 }, M{ 0 };
-    int lStart = (L - M != 2 * (L - M) / 2) ? M + 1 : M;
+
+    lStart = (L - M != 2 * (L - M) / 2) ? M + 1 : M;
 
     // some subroutines require ZA >= Zb
     double ZA = 1.0, ZB = QU;
@@ -390,6 +452,13 @@ int main()
     int IGO = (ZA != ZB) ? 1 : 2;
     double rStart{ 0.0 };
     int Z = ZA + ZB;
+    for (int i = 1; i <= 4; i++) {
+        if (IAC[i] < IACMIN[i] || IAC[i] > IACMAX[i]) {
+            IAC[i] = IACDFT[i];
+        }
+        AC[i] = 1.0 / pow(10, IAC[i]);
+    }
+
     int nPts = 100;
     double RINCR = 0.3; 
     // the above should be in a input file in the future
@@ -472,6 +541,7 @@ int main()
             nPts = min(i,IXTRAP);
             int J = i + 1 - nPts;
             EXTRAP(RR, PP, nPts);
+            EXTRAP(RR, CSEP, nPts);
         }
         //else i = 1 or 2, do nothing
         // 
@@ -482,7 +552,11 @@ int main()
         //goto 7, this is where 7 starts
         double P = PP[i];
         double C = CSEP[i];
-        cout << "I: " << i << " P: " << P << endl;
+        CHAIN(FCHAIN, GCHAIN, IGO, RZ, RZDIF, N, L, M, KS, P, C);
+        int KOUNT = 0;
+        int FCUT = 0;
+        int GCUT = 0;
+        CTDFRN(IGO, P, C, RZ, RZDIF, M, FCHAIN, lStart, *ACCIN, FCUT, F, DFDC, DFDP,  NCVIN);
     }
     
     
