@@ -139,7 +139,7 @@ void EXTRAP(vector<double> & X, vector<double> &F, int N) {
 }
 
 
-void CTDFRN(int IGO, double P, double C, double RZ, double RZDIF, int M, double LCHAIN, double LSTART, double ACCY, double CUTOFF, double F, double DFDC, double DFDP,int ICHK) {
+void CTDFRN(int IGO, double& P, double& C, double RZ, double RZDIF, int M, double LCHAIN, double LSTART, double ACCY, double CUTOFF, double& F, double DFDC, double DFDP,int ICHK) {
 
     bool TEST = false;
     const double SCALE{ 1e-7 };
@@ -419,17 +419,32 @@ label5:
 
 
 int main()
-{    
+{
     //define constants, As of now not sure their functionality
-    vector<int> IACDFT{ 11,11,10,10 };
-    vector<int> IACMAX{ 13,13,10,10 };
-    vector<int> IACMIN{ 10,10,10,10 };
-    const int IIN{ 2 }, IOUT{ 3 }, IHOLD{1}, IXTRAP{ 10 }, ITMAX{ 50 };
+    vector<int> IACDFT{ 0,11,11,10,10 };
+    vector<int> IACMAX{ 0,13,13,10,10 };
+    vector<int> IACMIN{ 0,10,10,10,10 };
+    vector<double> IAC(5);
+    vector<double> AC(5);
+    double* PAC = &AC[1];
+    double* CAC = &AC[2];
+    double* ACCIN = &AC[3];
+    double* ACCOUT = &AC[4];
+    double F{ 0 };
+    double G{ 0 };
+    const int IIN{ 2 }, IOUT{ 3 }, IHOLD{ 1 }, IXTRAP{ 10 }, ITMAX{ 50 };
+    int FCHAIN{ 0 };
+    int GCHAIN{ 0 };
+    int lStart{ 0 };
+    double DFDC{ 0 };
+    double DFDP{ 0 };
+    int NCVIN{ 0 };
     // ZA, ZB: nuclear charges;
     // N,L,M: UNITED atom quantum number
     int QU{ 1 };
     int N{ 1 }, L{ 0 }, M{ 0 };
-    int lStart = (L - M != 2 * (L - M) / 2) ? M + 1 : M;
+
+    lStart = (L - M != 2 * (L - M) / 2) ? M + 1 : M;
 
     // some subroutines require ZA >= Zb
     double ZA = 1.0, ZB = QU;
@@ -437,6 +452,13 @@ int main()
     int IGO = (ZA != ZB) ? 1 : 2;
     double rStart{ 0.0 };
     int Z = ZA + ZB;
+    for (int i = 1; i <= 4; i++) {
+        if (IAC[i] < IACMIN[i] || IAC[i] > IACMAX[i]) {
+            IAC[i] = IACDFT[i];
+        }
+        AC[i] = 1.0 / pow(10, IAC[i]);
+    }
+
     int nPts = 100;
     double RINCR = 0.3; 
     // the above should be in a input file in the future
@@ -519,6 +541,7 @@ int main()
             nPts = min(i,IXTRAP);
             int J = i + 1 - nPts;
             EXTRAP(RR, PP, nPts);
+            EXTRAP(RR, CSEP, nPts);
         }
         //else i = 1 or 2, do nothing
         // 
@@ -529,7 +552,11 @@ int main()
         //goto 7, this is where 7 starts
         double P = PP[i];
         double C = CSEP[i];
-        cout << "I: " << i << " P: " << P << endl;
+        CHAIN(FCHAIN, GCHAIN, IGO, RZ, RZDIF, N, L, M, KS, P, C);
+        int KOUNT = 0;
+        int FCUT = 0;
+        int GCUT = 0;
+        CTDFRN(IGO, P, C, RZ, RZDIF, M, FCHAIN, lStart, *ACCIN, FCUT, F, DFDC, DFDP,  NCVIN);
     }
     
     
