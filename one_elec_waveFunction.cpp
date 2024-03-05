@@ -243,7 +243,7 @@ void CTDFRN(int IGO, double& P, double& C, double RZ, double RZDIF, int M, doubl
 label5:
     J = J + JINCR;
     ICHK = ICHK + 1;
-    if (ICHK == 1000) { cout << "Errors" << endl; return; }
+    if (ICHK == 10000) { cout << "Errors" << endl; return; }
     JJ = J * J;
     switch (JGO) {
     case 6:
@@ -367,7 +367,7 @@ label15:
     return;
 }
 
-void CHAIN(int& FCHAIN, int& GCHAIN, int IGO, double RZ, double RZDIF, int N, int L, int M, double KS, double P, double C) {
+void CHAIN(int& FCHAIN, int& GCHAIN, int IGO, double &RZ, double &RZDIF, int N, int L, int M, double KS, double &P, double &C) {
     //Function that determines the values of the continued fraction indices at which we chain
     int J{ 0 };
     double SIGMA{ 0 };
@@ -450,7 +450,16 @@ int main()
     double C = 0;
     double DENOM = 0;
     double DELTAP = 0;
-    double DELTAC = ;
+    double DELTAC = 0;
+    int ISTART = 0;
+    double RZ = 0;
+    double RZDIF = 0;
+    double DC = 0;
+    double ZK = 0;
+    double NS{ 0 }, KS{ 0 }, ICEN{ 0 };
+    int NOPTS{ 1 };
+    int IRISK = 0;
+    vector <double> PP(999), CSEP(999), RR(999), ICVGY(999), ICVGX(999);
     // ZA, ZB: nuclear charges;
     // N,L,M: UNITED atom quantum number
     int QU{ 1 };
@@ -474,17 +483,14 @@ int main()
     int nPts = 100;
     double RINCR = 0.3; 
     // the above should be in a input file in the future
-    vector <double> PP(999),CSEP(999), RR(999), ICVGY(999), ICVGX(999);
-
-    double rIncr = 0.3;
+    
     for (int i = 1; i < nPts+1; ++i) {
         RR[i] = (i-1)* RINCR;
     }
-    RR;
-    int NOPTS{ 1 };
-    int ISTART = NOPTS + 1;
+    
+    ISTART = NOPTS + 1;
     NOPTS += nPts;
-    double NS{ 0 }, KS{ 0 }, ICEN{ 0 };
+    
     CORR(ZA, ZB, N, L, M, NS, KS, ICEN); 
 
 
@@ -532,15 +538,12 @@ int main()
         if (IGO == 1 && R >= rJump) {
             IGO = 3;
         }
-        double RZ = R * Z;
-        double RZDIF = R * (ZA - ZB) * SIGN;
-		double DC{ 0 };
-		
-		CSEP[2] = CSEP[1] + DC;
+        RZ = R * Z;
+        RZDIF = R * (ZA - ZB) * SIGN;
         if (i > 2) { goto label6; }
         if (i == 1) { goto label7; }
         PP[2] = 0.5 * R * Z / N;
-        double ZK = RZDIF * 0.5 / PP[2];
+        ZK = RZDIF * 0.5 / PP[2];
         if (L == 0) {
             DC = 2 * (1 - ZK * ZK) / 3 * pow(PP[2], 2.0);
         }
@@ -558,7 +561,6 @@ label6:
         J = i + 1 - nPts;
         EXTRAP(RR, PP, nPts);
         EXTRAP(RR, CSEP, nPts);
-        
 label7:
         P = PP[i];
         C = CSEP[i];
@@ -567,6 +569,8 @@ label7:
         KOUNT = 0;
         FCUT = 0;
         GCUT = 0;
+label8: 
+        cout <<i<<' '<< P << ' ' << C << " " << RZ << " " << RZDIF << ' ' << endl;
         CTDFRN(IGO, P, C, RZ, RZDIF, M, FCHAIN, lStart, *ACCIN, FCUT, F, DFDC, DFDP,  NCVIN);
         CTDFRN(4, P, C, RZ, RZDIF, M, GCHAIN, lStart , *ACCOUT, GCUT, G, DGDC, DGDP, NCVOUT);
         //BUild an array of the convergents for transfer to WFNC
@@ -576,17 +580,36 @@ label7:
         DELTAP = (F * DGDC - G * DFDC) / DENOM;
         DELTAC = (G * DFDP - F * DGDP) / DENOM;
 
+        
         P +=DELTAP;
         C +=DELTAC;
         if (abs(DELTAP) / (1. + P) < *PAC and abs(DELTAC) / (1. + abs(C)) < *CAC) { goto label9; }
         KOUNT += 1;
-        if (KOUNT > ITMAX) { goto label16; } / DABS(DGDP))
+        if (KOUNT > ITMAX) { 
+            cout << "max iteration reached at R index: " << i; 
+            return -1; }
         FCUT = 0.5 * abs(DENOM) * max(*PAC * (1 + P) / abs(DGDC), *CAC * (1 + abs(C)) / abs(DGDP));
             
         GCUT = 0.5 * abs(DENOM) * max(*PAC * (1 + P) / abs(DFDC), *CAC * (1 + abs(C)) / abs(DFDP));
+        if (IRISK == 0) { goto label8; }
+        if (abs(F) * (*ACCIN / FCUT) < 1.0 and abs(G) * 100 * (*ACCOUT / GCUT) < 1.0) { goto label9; }
+        goto label8;
+label9:
+        CSEP[i] = C;
+        C = -C + P * P;
+        PP[i] = P;
 
-        CTDFRN(IGO, P, C, RZ, RZDIF, M, FCHAIN, lStart, *ACCIN, FCUT, F, DFDC, DFDP,  NCVIN);
     }
+    //iteration over R is now complete, store energies in PP
+    //PP[i] = P;
+    //CSEP[i] = C;
+    PP[1] = -0.5 * pow((Z / N),2);
+    for (int i = ISTART; i <= nPts; i++) {
+        PP[i] = -2 * pow((PP[i] / RR[i]), 2);
+    }
+    //begin outputing
+    PP;
+
     
     
 }
