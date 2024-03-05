@@ -154,9 +154,9 @@ void CTDFRN(int IGO, double P, double C, double RZ, double RZDIF, int M, double 
     //....................................................//
     //....................................................//
     double AO = 1;
-    int DAODC = 0;
-    int DAODP = 0;
-    int DADC = 1;
+    double DAODC = 0;
+    double DAODP = 0;
+    double DADC = 1;
     int JGO; // JGO is used as a label
 
 
@@ -374,10 +374,36 @@ void CHAIN(int FChain, int GChain, int IGO, double RZ, double RZDIF, int N, int 
 int main()
 {    
     //define constants, As of now not sure their functionality
-    vector<int> IACDFT{ 11,11,10,10 };
-    vector<int> IACMAX{ 13,13,10,10 };
-    vector<int> IACMIN{ 10,10,10,10 };
-    const int IIN{ 2 }, IOUT{ 3 }, IHOLD{1}, IXTRAP{ 10 }, ITMAX{ 50 };
+    vector<int> IACDFT{ 0,11,11,10,10 };
+    vector<int> IACMAX{ 0,13,13,10,10 };
+    vector<int> IACMIN{ 0,10,10,10,10 };
+    vector<double> IAC(5);
+    vector<double> AC(5);
+    double* PAC = &AC[1];
+    double* CAC = &AC[2];
+    double* ACCIN = &AC[3];
+    double* ACCOUT = &AC[4];
+    int J = 0;
+    double F{ 0 };
+    double G{ 0 };
+    const int IIN{ 2 }, IOUT{ 3 }, IHOLD{ 1 }, IXTRAP{ 10 }, ITMAX{ 50 };
+    int FCHAIN{ 0 };
+    int GCHAIN{ 0 };
+    int lStart{ 0 };
+    double DFDC{ 0 };
+    double DFDP{ 0 };
+    int NCVIN{ 0 };
+    double DGDC{ 0 };
+    double DGDP{ 0 };
+    int NCVOUT{ 0 };
+    int KOUNT = 0;
+    int FCUT = 0;
+    int GCUT = 0;
+    double P = 0;
+    double C = 0;
+    double DENOM = 0;
+    double DELTAP = 0;
+    double DELTAC = ;
     // ZA, ZB: nuclear charges;
     // N,L,M: UNITED atom quantum number
     int QU{ 1 };
@@ -453,36 +479,58 @@ int main()
         }
         double RZ = R * Z;
         double RZDIF = R * (ZA - ZB) * SIGN;
+		double DC{ 0 };
+		
+		CSEP[2] = CSEP[1] + DC;
+        if (i > 2) { goto label6; }
+        if (i == 1) { goto label7; }
         PP[2] = 0.5 * R * Z / N;
         double ZK = RZDIF * 0.5 / PP[2];
-		double DC{ 0 };
-		if (L == 0) {
-			DC = 2 * (1 - ZK * ZK) / 3 * pow(PP[2], 2.0);
-		}
-		else {// L!=0
-			DC = 2 * (((L + 1) * (L + 1) - M * M) * ((L + 1) * (L + 1) - ZK * ZK) / ((L + 1) * (L + L + 3))
-				- (L * L - M * M) * (L * L - ZK * ZK) / (L * (L + L - 1))) / (L + L + 1) * pow(PP[2], 2);
-
-		}
-		CSEP[2] = CSEP[1] + DC;
-        // three types of terms to evaluate: i = 1, i = 2 and i>2
-        if (i>2){
-            //extrapolate for P and C at current R
-            //Use data from the previous IXTRAP(= 10) points if available.
-            nPts = min(i,IXTRAP);
-            int J = i + 1 - nPts;
-            EXTRAP(RR, PP, nPts);
+        if (L == 0) {
+            DC = 2 * (1 - ZK * ZK) / 3 * pow(PP[2], 2.0);
         }
-        //else i = 1 or 2, do nothing
-        // 
-        //evaluate the second term
-        
-        
+        else {// L!=0
+            DC = 2 * (((L + 1) * (L + 1) - M * M) * ((L + 1) * (L + 1) - ZK * ZK) / ((L + 1) * (L + L + 3))
+                - (L * L - M * M) * (L * L - ZK * ZK) / (L * (L + L - 1))) / (L + L + 1) * pow(PP[2], 2);
 
-        //goto 7, this is where 7 starts
-        double P = PP[i];
-        double C = CSEP[i];
-        cout << "I: " << i << " P: " << P << endl;
+        }
+        CSEP[2] = CSEP[1] + DC;
+        goto label7;
+        //extrapolate for P and C at current R
+        //Use data from the previous IXTRAP(= 10) points if available.
+label6:
+        nPts = min(i,IXTRAP);
+        J = i + 1 - nPts;
+        EXTRAP(RR, PP, nPts);
+        EXTRAP(RR, CSEP, nPts);
+        
+label7:
+        P = PP[i];
+        C = CSEP[i];
+        
+        CHAIN(FCHAIN, GCHAIN, IGO, RZ, RZDIF, N, L, M, KS, P, C);
+        KOUNT = 0;
+        FCUT = 0;
+        GCUT = 0;
+        CTDFRN(IGO, P, C, RZ, RZDIF, M, FCHAIN, lStart, *ACCIN, FCUT, F, DFDC, DFDP,  NCVIN);
+        CTDFRN(4, P, C, RZ, RZDIF, M, GCHAIN, lStart , *ACCOUT, GCUT, G, DGDC, DGDP, NCVOUT);
+        //BUild an array of the convergents for transfer to WFNC
+        ICVGY[i] = NCVIN;
+        ICVGX[i] = NCVOUT;
+        DENOM = DFDC * DGDP - DFDP * DGDC;
+        DELTAP = (F * DGDC - G * DFDC) / DENOM;
+        DELTAC = (G * DFDP - F * DGDP) / DENOM;
+
+        P +=DELTAP;
+        C +=DELTAC;
+        if (abs(DELTAP) / (1. + P) < *PAC and abs(DELTAC) / (1. + abs(C)) < *CAC) { goto label9; }
+        KOUNT += 1;
+        if (KOUNT > ITMAX) { goto label16; } / DABS(DGDP))
+        FCUT = 0.5 * abs(DENOM) * max(*PAC * (1 + P) / abs(DGDC), *CAC * (1 + abs(C)) / abs(DGDP));
+            
+        GCUT = 0.5 * abs(DENOM) * max(*PAC * (1 + P) / abs(DFDC), *CAC * (1 + abs(C)) / abs(DFDP));
+
+        CTDFRN(IGO, P, C, RZ, RZDIF, M, FCHAIN, lStart, *ACCIN, FCUT, F, DFDC, DFDP,  NCVIN);
     }
     
     
