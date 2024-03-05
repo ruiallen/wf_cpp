@@ -528,7 +528,7 @@ int main()
     //Begin loop over R values
     // we have already initialized i = 0 case. 
     int NR = NOPTS - ISTART + 1;
-    for (int i = ISTART; i <= NOPTS; ++i) {
+    for (int i = ISTART; i <= NR; ++i) {
         double R = RR[i];
         //IGO=1,2, OR 3 RESPECTIVELY FOR HETERONUCLEAR SMALL R, 
         //HOMONUCLEAR OR HETERONUCLEAR LARGE R EXPANSION FOR Y(ETA).
@@ -555,12 +555,12 @@ int main()
         CSEP[2] = CSEP[1] + DC;
         goto label7;
         //extrapolate for P and C at current R
-        //Use data from the previous IXTRAP(= 10) points if available.
+        //Use data from the previous i points if available.
 label6:
         nPts = min(i,IXTRAP);
-        J = i + 1 - nPts;
-        EXTRAP(RR, PP, nPts);
-        EXTRAP(RR, CSEP, nPts);
+        
+        EXTRAP(RR, PP, i);
+        EXTRAP(RR, CSEP, i);
 label7:
         P = PP[i];
         C = CSEP[i];
@@ -570,7 +570,7 @@ label7:
         FCUT = 0;
         GCUT = 0;
 label8: 
-        cout <<i<<' '<< P << ' ' << C << " " << RZ << " " << RZDIF << ' ' << endl;
+        //cout <<i<<' '<< P << ' ' << C << " " << RZ << " " << RZDIF << ' ' << endl;
         CTDFRN(IGO, P, C, RZ, RZDIF, M, FCHAIN, lStart, *ACCIN, FCUT, F, DFDC, DFDP,  NCVIN);
         CTDFRN(4, P, C, RZ, RZDIF, M, GCHAIN, lStart , *ACCOUT, GCUT, G, DGDC, DGDP, NCVOUT);
         //BUild an array of the convergents for transfer to WFNC
@@ -598,7 +598,7 @@ label9:
         CSEP[i] = C;
         C = -C + P * P;
         PP[i] = P;
-
+        cout << i << ' ' << PP[i]<<endl;
     }
     //iteration over R is now complete, store energies in PP
     //PP[i] = P;
