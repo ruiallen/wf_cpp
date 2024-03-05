@@ -607,13 +607,81 @@ label9:
     for (int i = ISTART; i < NOPTS; i++) {
         PP[i] = -2 * pow((PP[i] / RR[i]), 2);
     }
-    //begin outputing
-    PP;
-
-    
-    
+    //todo: print to file
 }
 
+
+
+
+void GRAVE(const double QU, int N, int L, int ME, int NR, vector<double> GraveP, vector<double> GraveC ) {
+    double A, AG, CEM, DABS, DFLOAT, E, EM, PE, PE2,  R, RQU, SIGMA, XF, XG, XF1;
+    int NG, NF, MYINDEX;
+    int JWRIT, NGMAX, NFMAX, NGIN, NFIN, NSTATE, XGMAX, XFMAX, NFPMAX;
+    bool NGTEST, NFTEST;
+    vector<double> RR(999), SWITCH(999);
+    vector<double> AOUT(88);
+    // &QU = AOUT, not sure why placeholder for future review.
+    const int JAOUT = 88;
+
+    struct CommonBlockTRAP {
+        //used to transfer quantities defining the wave fucntion to different subroutines in GRAVE
+        static double QU, R, ME, N, L, IVER, E, PE, A, NG, NF;
+        static std::vector<double> XG, XF;
+
+    };
+    CommonBlockTRAP::QU = QU;
+
+    struct CommonBlockINIT {
+        double SIGMA, EM, CEM, PE2, RQU, ME2, MEC;
+    };
+    const int IVER = 2;
+    //for now, ignore all reads in and set parameters directly. Need to be more dynamic in the future. 
+    /****************************************************************************************************************************** 
+    ******************************************************************************************************************************
+    ******************************************************************************************************************************
+    JWRIT: The Coeffs of the semi-analytic expansions of the WF is pringted if JWRIT!=0.
+
+    XGMAX: THE TRUNCATION OF THE SEMI-ANALYTIC EXPANSION OF THE OUTER WAVE-FUNCTION IS SUCH THAT THE RATIO OF THE FIRST COEFFICIENT
+    TO THE LAST IN THE EXPANSION IS GREATER THAN XGMAX.
+
+    XFMAX: SAME AS XFMAX FOR THE INNER WAVE-FUNCTION.
+
+    NGMAX: MAXIMUM NUMBER OF TERMS IN THE EXPANSION OF THE OUTER WAVE-FUNCTION.
+
+    NFMAX: SAME AS NGMAX FOR INNER WAVE-FUNCTION.
+
+    NGIN: INITIAL GUESS FOR THE NUMBER OF TERMS IN THE EXPANSION OF THE OUTER WAVE-FUNCTION.
+    NFIN: SAME AS NFIN FOR INNER WAVER-FUNCTION.
+
+    NSTATE: NUMBER OF STATES FOR WHICH THE CALCULATIONS ARE TO BE PERFORMED.
+     ******************************************************************************************************************************
+    ******************************************************************************************************************************
+    *******************************************************************************************************************************
+    *******************************************************************************************************************************/
+
+    JWRIT = 1;
+    XGMAX = 10000;
+    XFMAX = 10000;
+    NGMAX = 80;
+    NFMAX = 80;
+    NGIN = 7;
+    NFIN = 8;
+    NSTATE = 1;
+
+    NG = NGIN;
+    NF = NFIN;
+
+    EM = float(ME);
+    //JPAR = label22
+    NFPMAX = NFMAX;
+    if (abs(QU - 1.0) >= 2e-5) { goto label101; }
+    int NPAR = 0;
+    //JPAR = label220
+    if (pow(-1.0, L + ME) < 0) { NPAR = 1; }
+    int NCPAR = 1 - NPAR;
+
+
+}
 
 int main() {
     int N = 1;
