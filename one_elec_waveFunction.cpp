@@ -418,7 +418,7 @@ label5:
 
 //to do pack main() into function wf
 
-void wave_function(int QU, int N, int L, int M, vector<double>& RR, vector<double>& PP, vector<double>& CSEP)
+void wave_function(int QU, int N, int L, int M, vector<double>& RR, vector<double>& PP, vector<double>& CSEP, vector<double>& GraveP, vector<double>& GraveC)
 {
     //define constants, As of now not sure their functionality
     vector<int> IACDFT{ 0,11,11,10,10 };
@@ -595,6 +595,9 @@ label8:
 label9:
         CSEP[i] = C;
         C = -C + P * P;
+        //GraveC and GraveP are for later Grave and MEDOC functions to calcualte couplings
+        GraveC[i] = C;
+        GraveP[i] = P;
         PP[i] = P;
     }
     //iteration over R is now complete, store energies in PP
@@ -603,7 +606,6 @@ label9:
     PP[1] = -0.5 * pow((Z / N),2);
     for (int i = ISTART; i < NOPTS; i++) {
         PP[i] = -2 * pow((PP[i] / RR[i]), 2);
-       
     }
     //begin outputing
     PP;
@@ -617,11 +619,12 @@ int main() {
     int N = 1;
     int L = 0;
     int M = 0;
-    int QU = 1;
+    const int QU = 1; //make sure only work on one type of system
     vector <double> PP(999), CSEP(999), RR(999);
-    wave_function(QU,N, L, M, RR, PP, CSEP);
+    vector <double>GraveP(999), GraveC(999);
+    wave_function(QU,N, L, M, RR, PP, CSEP,GraveP,GraveC);
     for (int i = 1; i < 100; i++) {
-        cout << i << ' '<< CSEP[i] << endl;
+        cout << RR[i] << ' '<< GraveP[i] <<' '<<GraveC[i] << endl;
     }
     return 0;
 
