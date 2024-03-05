@@ -416,9 +416,9 @@ label5:
     return;
 }
 
+//to do pack main() into function wf
 
-
-int main()
+void wave_function(int QU, int N, int L, int M, vector<double>& RR, vector<double>& PP, vector<double>& CSEP)
 {
     //define constants, As of now not sure their functionality
     vector<int> IACDFT{ 0,11,11,10,10 };
@@ -459,11 +459,9 @@ int main()
     double NS{ 0 }, KS{ 0 }, ICEN{ 0 };
     int NOPTS{ 1 };
     int IRISK = 0;
-    vector <double> PP(999), CSEP(999), RR(999), ICVGY(999), ICVGX(999);
+    vector <double> ICVGY(999), ICVGX(999);
     // ZA, ZB: nuclear charges;
     // N,L,M: UNITED atom quantum number
-    int QU{ 1 };
-    int N{ 1 }, L{ 0 }, M{ 0 };
 
     lStart = (L - M != 2 * (L - M) / 2) ? M + 1 : M;
 
@@ -587,7 +585,7 @@ label8:
         KOUNT += 1;
         if (KOUNT > ITMAX) { 
             cout << "max iteration reached at R index: " << i; 
-            return -1; }
+            return; }
         FCUT = 0.5 * abs(DENOM) * max(*PAC * (1 + P) / abs(DGDC), *CAC * (1 + abs(C)) / abs(DGDP));
             
         GCUT = 0.5 * abs(DENOM) * max(*PAC * (1 + P) / abs(DFDC), *CAC * (1 + abs(C)) / abs(DFDP));
@@ -598,14 +596,14 @@ label9:
         CSEP[i] = C;
         C = -C + P * P;
         PP[i] = P;
-        cout << i << ' ' << PP[i]<<endl;
     }
     //iteration over R is now complete, store energies in PP
     //PP[i] = P;
     //CSEP[i] = C;
     PP[1] = -0.5 * pow((Z / N),2);
-    for (int i = ISTART; i <= nPts; i++) {
+    for (int i = ISTART; i < NOPTS; i++) {
         PP[i] = -2 * pow((PP[i] / RR[i]), 2);
+       
     }
     //begin outputing
     PP;
@@ -614,13 +612,21 @@ label9:
     
 }
 
-// Run program: Ctrl + F5 or Debug > Start Without Debugging menu
-// Debug program: F5 or Debug > Start Debugging menu
 
-// Tips for Getting Started: 
-//   1. Use the Solution Explorer window to add/manage files
-//   2. Use the Team Explorer window to connect to source control
-//   3. Use the Output window to see build output and other messages
-//   4. Use the Error List window to view errors
-//   5. Go to Project > Add New Item to create new code files, or Project > Add Existing Item to add existing code files to the project
-//   6. In the future, to open this project again, go to File > Open > Project and select the .sln file
+int main() {
+    int N = 1;
+    int L = 0;
+    int M = 0;
+    int QU = 1;
+    vector <double> PP(999), CSEP(999), RR(999);
+    wave_function(QU,N, L, M, RR, PP, CSEP);
+    for (int i = 1; i < 100; i++) {
+        cout << i << ' '<< CSEP[i] << endl;
+    }
+    return 0;
+
+
+
+
+
+}
