@@ -613,27 +613,169 @@ label9:
 
 
 
-void GRAVE(const double QU, int N, int L, int ME, int NR, vector<double> GraveP, vector<double> GraveC ) {
-    double A, AG, CEM, DABS, DFLOAT, E, EM, PE, PE2,  R, RQU, SIGMA, XF, XG, XF1;
+
+struct CommonBlockTRAP {
+    //used to transfer quantities defining the wave fucntion to different subroutines in GRAVE
+    double QU, R, ME, N, L, IVER, E, PE, A, NG, NF;
+    std::vector<double> XG, XF;
+
+};
+
+
+struct CommonBlockINIT {
+    double SIGMA, EM, CEM, PE2, RQU, ME2, MEC;
+};
+
+
+struct CommonBlockMAT {
+   
+    vector<double> A = vector<double>(6);
+    vector<double> AM = vector<double>(41);
+    vector<double> INT = vector<double>(201);
+};
+
+vector<vector<double>> row2column(vector<double> originalVector) {
+    vector<vector<double>> columnVector;
+
+    // Populate the "column vector"
+    for (int i = 0; i < originalVector.size(); ++i) {
+        columnVector.push_back(std::vector<double>{originalVector[i]});
+    }
+    return columnVector;
+}
+
+
+void BANDET(int N, int M1, int M2, int IE, double LAM, double MAC, vector<double> &A, double D1, int ID2, vector<double> &M, vector<double> &INT, bool FAIL) {
+    /* PROGRAM BANDET1 (Handbook for automatic computation Vol II, I/6)
+    * Calculates the determinant of a Band Matrix and put the matrix in a form suitable for use by BANSOL
+    * N: dimension of the matrix
+    * M1: number of subdiagonal lines
+    * M2: number of Superdiagonal lines
+    * IE=1 if the determinant is requred and 0 otherwise
+    * LAM: Calculations are performed on A-A-LAM*I instead of A
+    * MAC: smallest number s.t. 1.0+MAC!=1
+    * A: Matrix of dimension N*(M1+M2+1) 
+    * D1, ID2: give the value of the determinant as D1*2^ID2
+    * M: Real working matrix of the size N*(M1+M2+1)
+    * INT: Working array if dimension N
+    * FAIL: if BANSOL fails, FAIL=True
+    */
+    double DABS,  X,  NORM;
+    vector<vector<double>> AA = row2column(A);
+    vector<vector<double>> MM = row2column(M);
+    FAIL = false;
+
+    double MSUP = M1 + M2 + 1;
+    NORM = 0.0;
+    if (IE != 1) { goto label11; }
+    for (int i = 1; i <= N; i++) {
+        X = 0.0;
+        for (int J = 1; J <= MSUP; J++) {
+            X += abs(AA[i][J]);
+        }
+    }
+label11:
+    return;
+}
+
+
+
+
+void DGE(int N, double AG, double PE, vector<double> &BG, CommonBlockINIT INIT, CommonBlockMAT MAT) {
+    /*************************************************************************
+    Calculates the tridiagonal matrix G and solves the system of linear equations
+    which gives the coefficient of the expansion of the outer wavefunction
+    *************************************************************************/
+    double AA,  DFLOAT, D1, HI;
+    const double ZERO = 0.0;
+    const double MACH = 2.3e-16; // MACH is machine dependent, can make it smaller in the future
+    bool FAIL;
+    int NN = N - 1;
+    int KS, NS, M2;
+    int J = 0;
+    int ID2 = 0;
+
+    for (int i = 1; i <= NN; i++) {
+        J += 1;
+        AA = double(i - 1) - INIT.SIGMA;
+        MAT.A[J] = AA * (AA - INIT.EM);
+    }
+    AA = INIT.SIGMA - 2.0 * PE;
+    if (NN == 1) { goto label21; }
+    KS = NN - 1;
+    for (int i = 1; i <= KS; ++i) {
+        J += 1;
+        HI = double(i);
+        MAT.A[J] = 2.0 * HI * (AA - HI) + INIT.CEM - AG;
+    }
+    J += 1;
+    MAT.A[J] = 0;
+    if (NN == 2) { goto label31; }
+    KS = NN - 2;
+    for (int i = 1; i <= KS; i++) {
+        J = J + 1;
+        HI = double(i + 1);
+        MAT.A[J] = HI * (HI + INIT.EM);
+    }
+    J += 1;
+    MAT.A[J] = 0;
+    J += 1;
+    MAT.A[J] = 0;
+    M2 = 2;
+label32:
+    BANDET(NN, 0, M2, 0, ZERO, MACH, MAT.A, D1=0, ID2, MAT.AM, MAT.INT, FAIL=false);
+    if (FAIL) { goto label99; }
+    if (NN == 2) { goto label51; }
+    NS = NN - 2;
+    for (int i = 0; i <= NS; i++) {
+        BG[i] = 0;
+    }
+label51:
+    NS = NN - 1;
+    HI = double(NS + 1);
+    BG[NS] = -HI * (HI + INIT.EM);
+    HI = double(NN);
+    BG[NN] = -2.0 * HI * (AA - HI) - INIT.CEM + AG;
+    //BANSOL(NN, 0, M2, 0, 1, BG, INIT, MAT);
+    BG[N] = 1.0;
+    goto labelreturn;
+label31:
+    M2 = 1;
+    goto label32;
+label21:
+    MAT.A[2] = 2.0 * (AA - 1) + INIT.CEM - AG;
+    BG[1] = -MAT.A[2] / MAT.A[1];
+    BG[2] = 1.0;
+    goto labelreturn;
+label99:
+    cout << "ERROR. QUIT" << endl;
+labelreturn:
+    return;
+}
+
+
+void GRAVE(const double QU, int N, int L, int ME, int NR, vector<double> RR, vector<double> GraveP, vector<double> GraveC) {
+    double A, AG, CEM, DABS, DFLOAT, E, EM, PE, PE2,  R, RQU, SIGMA, XF1;
     int NG, NF, MYINDEX;
     int JWRIT, NGMAX, NFMAX, NGIN, NFIN, NSTATE, XGMAX, XFMAX, NFPMAX;
     bool NGTEST, NFTEST;
-    vector<double> RR(999), SWITCH(999);
+    int NPAR, NCPAR;
+    int JPAR;
+    int NFF;
+    vector<double> SWITCH(999);
     vector<double> AOUT(88);
     // &QU = AOUT, not sure why placeholder for future review.
     const int JAOUT = 88;
 
-    struct CommonBlockTRAP {
-        //used to transfer quantities defining the wave fucntion to different subroutines in GRAVE
-        static double QU, R, ME, N, L, IVER, E, PE, A, NG, NF;
-        static std::vector<double> XG, XF;
 
-    };
-    CommonBlockTRAP::QU = QU;
+    CommonBlockTRAP TRAP = {};
+    TRAP.QU = QU;
+ 
 
-    struct CommonBlockINIT {
-        double SIGMA, EM, CEM, PE2, RQU, ME2, MEC;
-    };
+
+ 
+
+
     const int IVER = 2;
     //for now, ignore all reads in and set parameters directly. Need to be more dynamic in the future. 
     /****************************************************************************************************************************** 
@@ -658,7 +800,8 @@ void GRAVE(const double QU, int N, int L, int ME, int NR, vector<double> GraveP,
     ******************************************************************************************************************************
     *******************************************************************************************************************************
     *******************************************************************************************************************************/
-
+    CommonBlockINIT INIT = {};
+    CommonBlockMAT MAT = {};
     JWRIT = 1;
     XGMAX = 10000;
     XFMAX = 10000;
@@ -672,15 +815,45 @@ void GRAVE(const double QU, int N, int L, int ME, int NR, vector<double> GraveP,
     NF = NFIN;
 
     EM = float(ME);
-    //JPAR = label22
+    JPAR = 22;
     NFPMAX = NFMAX;
     if (abs(QU - 1.0) >= 2e-5) { goto label101; }
-    int NPAR = 0;
-    //JPAR = label220
+    NPAR = 0;
+    JPAR = 220;
     if (pow(-1.0, L + ME) < 0) { NPAR = 1; }
-    int NCPAR = 1 - NPAR;
-
-
+    NCPAR = 1 - NPAR;
+    NFPMAX = 2 * ((NFMAX + NCPAR) / 2) - NCPAR;
+label101:
+    int ME2 = 2*ME;
+    int MEC = 2 * ME * ME + 1;
+    //start looping on internuclear distance
+    for (int i = 0; i <= NR; i++) {
+        R = RR[i];
+        PE = GraveP[i];
+        A = GraveC[i];
+        RQU = R * (QU - 1.0);
+        PE2 = PE * PE;
+        AG = -A;
+        E = -2 * PE * PE / (R * R);
+        NGTEST = true;
+        NFTEST = true;
+        SIGMA = R * (1.0 + QU) / (2.0 * PE) - 1.0 - EM;
+        CEM = EM * (EM + SIGMA + 1.0) + SIGMA * (1.0 + 2.0 * PE) - PE2;
+        DGE(NG, AG, PE, TRAP.XG, INIT, MAT);
+        switch (JPAR) {
+             case 22:
+            //DFE(NF, A, PE, TRAP.XF);
+                //goto label20;
+            case 220:
+                if (NF < 4) { NF = 4;}
+                NFF = (NF + NCPAR) / 2;
+                NF = 2 * NFF - NCPAR;
+            //DFSYM(NFF, A, PE, TRAP.XF, NPAR);
+       
+            //check if enough terms in series to achieve required precision
+        }
+    }
+    return;
 }
 
 int main() {
@@ -695,9 +868,4 @@ int main() {
         cout << RR[i] << ' '<< GraveP[i] <<' '<<GraveC[i] << endl;
     }
     return 0;
-
-
-
-
-
 }
