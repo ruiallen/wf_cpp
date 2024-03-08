@@ -634,22 +634,114 @@ struct CommonBlockINIT {
 struct CommonBlockMAT {
    
     vector<double> A = vector<double>(201);
-    vector<double> AM = vector<double>(41);
-    vector<double> INT = vector<double>(201);
+    vector<double> AM = vector<double>(201);
+    vector<double> INT = vector<double>(41);
 };
 
-vector<vector<double>> row2column(vector<double> originalVector) {
-    vector<vector<double>> columnVector;
+vector<vector<double>> array2MatrixColumnWise(const vector<double>& vec, int n) {
+    int N = vec.size()-1;
+    // Calculate the number of columns. If N is not perfectly divisible by n, add 1 more column to fit all elements.
+    int m = (N % n == 0) ? (N / n) : (N / n + 1);
 
-    // Populate the "column vector"
-    for (int i = 0; i < originalVector.size(); ++i) {
-        columnVector.push_back(std::vector<double>{originalVector[i]});
+    vector<vector<double>> matrix(n, vector<double>(m, 0)); // Initialize matrix with zeros
+
+    for (int i = 1; i <= N; ++i) {
+        // Calculate the row and column index based on column-wise filling
+        int row = (i-1) % n;
+        int col = (i-1) / n;
+       
+        matrix[row][col] = vec[i];
     }
-    return columnVector;
+
+    return matrix;
+}
+
+vector<double> flattenMatrixColumnWise(const vector<vector<double>>& matrix) {
+    if (matrix.empty()) return {};
+
+    int n = matrix.size(); // Number of rows
+    int m = matrix[0].size(); // Assuming all rows have the same number of columns
+    vector<double> flattened;
+//placeholder for 0-indexed array
+    flattened.push_back(0);
+    for (int col = 0; col < m; ++col) {
+        for (int row = 0; row < n; ++row) {
+            flattened.push_back(matrix[row][col]);
+        }
+    }
+
+    return flattened;
+}
+
+//NN, 0, M2, 0, 1, A, AM, INT, BG
+void BANSOL(int N, int M1, int M2, int IE, int IR, vector<double>& AA, vector<double>& MM, vector<double>& INT, vector<double>& BB){
+    vector<vector<double>> A = array2MatrixColumnWise(AA, N);
+    vector<vector<double>> M = array2MatrixColumnWise(MM, N);
+    vector<vector<double>> B = array2MatrixColumnWise(BB, N);
+    double X;
+    int W,I, IK,KK;
+    int L = M1;
+    if (IE != 0) { goto label31; }
+    for (int K = 1;K<=N;K++){
+        I = int(K);
+        if (I == K) { goto label11; }
+            
+        X = B[K-1][0];
+        B[K-1][0] = B[I-1][0];
+        B[I-1][0] = X;
+    label11:
+        if (L < N) { L = L + 1; }
+        I = K + 1;
+    label30:
+        if (I > L) { break; }
+        IK = I - K;
+        X = M[K-1][IK];
+        B[I-1][0] = B[I-1][0] - X * B[K-1][0];
+        I = I + 1;
+        goto label30;
+    }
+label31:
+
+
+    L = -M1;
+    for (int II = 1; II <= N; II++) {
+        I = N - II + 1;
+        X = B[I-1][0];
+        W = I + M1;
+        int K = 1 - M1;
+    label62:
+        if (K > L) { goto label61; }
+        IK = K + M1 + 1;
+        KK = K + W;
+        X = X - A[I-1][IK-1]* B[KK-1][0];
+        K = K + 1;
+        goto label62;
+    label61:
+        B[I-1][0] = X / A[I-1][0];
+        if (L < M2) { L += 1; }
+    }
+    AA = flattenMatrixColumnWise(A);
+    BB = flattenMatrixColumnWise(B);
+    MM = flattenMatrixColumnWise(M);
+
+
+
+    return;
 }
 
 
-void BANDET(int N, int M1, int M2, int IE, double LAM, double MAC, vector<double>& A, double D1, int ID2, vector<double>& M, vector<double>& INT, bool FAIL) {
+
+
+
+
+
+
+
+
+
+
+
+void BANDET(int N, int M1, int M2, int IE, double LAM, double MAC, vector<double>& A, double D1, int ID2, vector<double>& M, vector<double>& INT, bool &FAIL) {
     /* PROGRAM BANDET1 (Handbook for automatic computation Vol II, I/6)
     * Calculates the determinant of a Band Matrix and put the matrix in a form suitable for use by BANSOL
     * N: dimension of the matrix
@@ -668,15 +760,15 @@ void BANDET(int N, int M1, int M2, int IE, double LAM, double MAC, vector<double
 
     //probably no need to convert A to a column vector
     double DABS,  X,  NORM;
-    vector<vector<double>> AA = row2column(A);
-    vector<vector<double>> MM = row2column(M);
+    vector<vector<double>> AA = array2MatrixColumnWise(A,N);
+    vector<vector<double>> MM = array2MatrixColumnWise(M,N);
     FAIL = false;
     int JJ, JP;
     int MSUP = M1+M2 + 1;
     NORM = 0.0;
     int J;
     for (int i = 1; i <= N; ++i) {
-        AA[i][0] = AA[i][0] - LAM;
+        AA[i-1][0] = AA[i-1][0] - LAM;
     }
     int M0 = M1 + 1;
     int L = M1;
@@ -688,7 +780,7 @@ label38:
     while (J <= M2) {
         JJ = J - L + M0;
         JP = J + M0;
-        AA[I][JJ - 1] = AA[I][JP - 1];
+        AA[I-1][JJ - 1] = AA[I-1][JP - 1];
         J += 1;
     }
 label39:
@@ -697,7 +789,7 @@ label39:
 label48:
     if (J > M2) { goto label49; }
     JJ = J + M0;
-    AA[I][JJ-1] = 0.0;
+    AA[I-1][JJ-1] = 0.0;
     J = J + 1;
     goto label48;
 label49:
@@ -708,14 +800,14 @@ label41:
     ID2 = 0;
     L = M1;
     for (int K = 1; K <= N; ++K) {
-        X = AA[K][0];
+        X = AA[K-1][0];
         I = K;
         if (L < N) { L += 1; }
         J = K + 1;
     label52:
         if (J > L) { goto label51; }
-        if (abs(AA[J][0] <= abs(X))) { goto label53; }
-        X = AA[J][0];
+        if (abs(AA[J-1][0] <= abs(X))) { goto label53; }
+        X = AA[J-1][0];
         I = J;
     label53:
         J += 1;
@@ -728,7 +820,7 @@ label41:
         if (IE == 1) { goto label55; }
         FAIL = true;
     label55:
-        AA[K][0] = NORM * MAC;
+        AA[K-1][0] = NORM * MAC;
     label54:
         if (D1 == 0) { goto label56; }
     label58:
@@ -744,32 +836,33 @@ label41:
     label56:
         if (I == K) { goto label61; }
         D1 = -D1;
-        X = AA[K][0];
-        AA[K][0] = AA[I][0];
-        AA[I][0] = X;
+        X = AA[K-1][0];
+        AA[K-1][0] = AA[I-1][0];
+        AA[I-1][0] = X;
     label61:
         I = K + 1;
     label63:
         if (I > L) { goto labelend; }
         JJ = I - K;
-        M[K] = AA[I][0] / AA[K][0];
-        X = M[K];
+        M[K-1] = AA[I-1][0] / AA[K-1][0];
+        X = M[K-1];
         J = 2;
     label68:
         if (J > MSUP) { goto label69; }
         JJ = J - 1;
-        AA[I][0] = AA[I][0] - X * AA[K][0];
+        AA[I-1][0] = AA[I-1][0] - X * AA[K-1][0];
         J += 1;
         goto label68;
     label69:
-        AA[I][0] = 0;
+        AA[I-1][0] = 0;
         I += 1;
         goto label63;
 
     }
 
 labelend:
-
+    A = flattenMatrixColumnWise(AA);
+    M = flattenMatrixColumnWise(MM);
     return;
 }
 
@@ -832,7 +925,7 @@ label51:
     BG[NS] = -HI * (HI + INIT.EM);
     HI = double(NN);
     BG[NN] = -2.0 * HI * (AA - HI) - INIT.CEM + AG;
-    //BANSOL(NN, 0, M2, 0, 1, BG, INIT, MAT);
+    BANSOL(NN, 0, M2, 0, 1, MAT.A, MAT.AM, MAT.INT, BG);
     BG[N] = 1.0;
     goto labelreturn;
 label31:
