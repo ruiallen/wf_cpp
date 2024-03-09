@@ -6,7 +6,7 @@
 #include<cmath>
 using namespace std;
 
-void CORR(double ZA, double ZB, double N, int L, int M, double &NS, int K, int ICEN) {
+void CORR(double ZA, double ZB, double N, int L, int M, double &NS, int &K, int &ICEN) {
     //Correltates UA and SA states using analytic formula of J. Power (Phil. Trans. Royal Society of London 1973)
     if (ZA == ZB) { //Homonuclear OEDM
         ICEN = 0;
@@ -69,7 +69,7 @@ void WRLG1(double Z, double ZP, int N, int D, double M, double R, double &W, dou
 
 
 }
-void WRLG2(double R, double W, double W0, double W1, double W2, double W3, double W4, double W5, double W6) {
+void WRLG2(double R, double &W, double W0, double W1, double W2, double W3, double W4, double W5, double W6) {
     double T = 1 / R;
     W = W0 + T * (W1 + T * (W2 + T * (W3 + T * (W4 + T * (W5 + T * W6)))));
     return;
@@ -456,7 +456,8 @@ void wave_function(int QU, int N, int L, int M, vector<double>& RR, vector<doubl
     double RZDIF = 0;
     double DC = 0;
     double ZK = 0;
-    double NS{ 0 }, KS{ 0 }, ICEN{ 0 };
+    double NS{ 0 };
+    int KS{ 0 }, ICEN{ 0 };
     int NOPTS{ 1 };
     int IRISK = 0;
     int nPts = 100;
@@ -942,6 +943,39 @@ labelreturn:
     return;
 }
 
+void DFE(int N, double AF, double& PE, vector<double> BF, CommonBlockINIT &INIT, CommonBlockTRAP &TRAP, CommonBlockMAT &MAT) {
+    //Calculates the pentadiagonal matrix F and solves the systems of linear eqns which give the coeff
+    //of the expansion of the inner wave-function
+
+    //for asymmetric system only
+    double AF, DFLOAT, D1, ZERO, I2, IME,JJ,JNU,JDEN;
+    const double MACH = 2.3e-16;
+    bool FAIL;
+    int NN, J, KS;
+    NN = N - 1;
+    if (NN == 1) { goto label11; }
+    J = 1;
+    MAT.A[1] = 0;
+    for (int I = 2; I <= NN; I++) {
+        J += 1;
+        I2 = I + I + INIT.ME2 - 1;
+        MAT.A[J] = INIT.PE2 * double(I * (I - 1)) / double(I2 * (I2 - 2));
+    }
+    for (int I = 1; I <= NN; I++) {
+        J += 1;
+        MAT.A[J] = INIT.RQU * float(I) / float(INIT.ME2 + I + I - 1);
+    }
+    KS = NN - 1;
+    for (int I = 1; I <= KS; I++) {
+        J = J + 1;
+        IME = I + TRAP.ME;
+        JJ = IME * (IME + 1);
+        JNU = JJ + JJ - INIT.MEC;
+        I2 = I + I + INIT.ME2 - 1;
+        JDEN = I2 * (I2 + 4);
+        MAT.A[J] = -JJ + INIT.PE2 * JNU / JDEN - AF;
+    }
+}
 
 void GRAVE(const double QU, int N, int L, int ME, int NR, vector<double> RR, vector<double> GraveP, vector<double> GraveC) {
     double A, AG, DABS, DFLOAT, E, PE, PE2, R, RQU, XF1;
@@ -1034,7 +1068,7 @@ label101:
         DGE(NG, AG, PE, TRAP.XG, INIT, MAT);
         switch (JPAR) {
              case 22:
-            //DFE(NF, A, PE, TRAP.XF);
+                DFE(NF, A, TRAP.PE, TRAP.XF, INIT,  TRAP, MAT);
                 //goto label20;
             case 220:
                 if (NF < 4) { NF = 4;}
