@@ -742,7 +742,7 @@ label31:
 
 
 
-void BANDET(int N, int M1, int M2, int IE, double LAM, double MAC, vector<double>& A, double D1, int ID2, vector<double>& M, vector<double>& INT, bool &FAIL) {
+void BANDET(int N, int M1, int M2, int IE, double LAM, double MAC, vector<double>& A, double& D1, int& ID2, vector<double>& M, vector<double>& INT, bool &FAIL) {
     /* PROGRAM BANDET1 (Handbook for automatic computation Vol II, I/6)
     * Calculates the determinant of a Band Matrix and put the matrix in a form suitable for use by BANSOL
     * N: dimension of the matrix
@@ -948,10 +948,11 @@ void DFE(int N, double AF, double& PE, vector<double> BF, CommonBlockINIT &INIT,
     //of the expansion of the inner wave-function
 
     //for asymmetric system only
-    double AF, DFLOAT, D1, ZERO, I2, IME,JJ,JNU,JDEN;
+    double AF, DFLOAT, D1,  I2, IME,JJ,JNU,JDEN;
     const double MACH = 2.3e-16;
     bool FAIL;
-    int NN, J, KS;
+    int NN, J, KS, M2, NS,ID2;
+    const double ZERO = 0.0;
     NN = N - 1;
     if (NN == 1) { goto label11; }
     J = 1;
@@ -975,7 +976,176 @@ void DFE(int N, double AF, double& PE, vector<double> BF, CommonBlockINIT &INIT,
         JDEN = I2 * (I2 + 4);
         MAT.A[J] = -JJ + INIT.PE2 * JNU / JDEN - AF;
     }
+    J = J + 1;
+    MAT.A[J] = 0.0;
+    if(NN == 2) goto label31;
+    KS = NN - 2;
+    for (int I = 1; I <= KS; I++) {
+        J = J + 1;
+        JNU = INIT.ME2 + I + 1;
+        MAT.A[J] = INIT.RQU * JNU / (JNU + I + 2);
+    }
+    J = J + 1;
+    MAT.A[J] = 0.0;
+    J = J + 1;
+    MAT.A[J] = 0.0;
+    if (NN == 3) { goto label41; };
+    KS = NN - 3;
+    for (int I = 1; I <= KS; I++) {
+        J += 1;
+        JNU = INIT.ME2 + I + 1;
+        JDEN = JNU + I + 2;
+        MAT.A[J] = INIT.PE2 * (JNU * (JNU + 1)) / (JDEN * (JDEN + 2));
+
+    }
+    J = J + 1;
+    MAT.A[J] = 0.0;
+    J = J + 1;
+    MAT.A[J] = 0.0;
+    J = J + 1;
+    MAT.A[J] = 0.0;
+    M2 = 3;
+    NS = NN - 3;
+    for (int i = 1; i <= NS; i++) {
+        BF[i] = 0.0;
+    }
+label42:
+    NS = NN - 2;
+    JNU = INIT.ME2 + NS + 1;
+    JDEN = JNU + NS + 2;
+    BF[NS] = -INIT.PE2 * (JNU * (JNU + 1)) / (JDEN * (JDEN + 2));
+label32:
+    NS = NN - 1;
+    JNU = INIT.ME2 + NS + 1;
+    BF[NS] = -INIT.RQU * JNU / (JNU + NS + 2);
+    IME = NN + TRAP.ME;
+    JJ = IME * (IME + 1);
+    I2 = INIT.ME2 + NN + NN - 1;
+    JNU = JJ + JJ - INIT.MEC;
+    JDEN = (I2 + 4) * I2;
+    BF[NN] = (JJ) - INIT.PE2 * (JNU) / (JDEN) + AF;
+    BANDET(NN, 1, M2, 0, ZERO, MACH, MAT.A, D1, ID2, MAT.AM, MAT.INT, FAIL);
+    if (FAIL) { cout << "FAIL in subroutine DGE" << endl; }
+    BANSOL(NN, 1, M2, 0, 1, MAT.A, MAT.AM, MAT.INT, BF);
+    BF[N] = 1.0;
+    goto labelend;
+label41:
+    M2 = 2;
+    goto label42;
+label31:
+    goto label32;
+label11:
+    MAT.A[1] = INIT.RQU /double(INIT.ME2 + 1);
+    JJ = (TRAP.ME + 1) * (TRAP.ME + 2);
+    JNU = JJ + JJ - INIT.MEC;
+    JDEN = (INIT.ME2 + 5) * (INIT.ME2 + 1);
+    MAT.A[2] = -double(JJ) + INIT.PE2 * JNU / JDEN - AF;
+    BF[1] = -MAT.A[2] / MAT.A[1];
+    BF[2] = 1.0;
+labelend:
+    return;
 }
+
+
+void DFSYM(int N,double AF,double PE, vector<double> BF, int NPAR, CommonBlockINIT INIT, CommonBlockTRAP TRAP, CommonBlockMAT MAT) {
+    //Calcualtes the traditional Matrix F and solves the system of linear eqns that gives the
+    //coeff of the inner wave function
+    //For QU = 1 (symmetrical system) only.
+    double D1,JNU,JDEN;
+    bool FAIL;
+    const double MACH = 2.3e-16;
+    const double ZERO = 0.0;
+    int I,II,I2,NN, NS, J, JJ,KS,IME,M2,ID2;
+    NN = N - 1;
+    if (NN == 1) { goto label11; }
+    J = 0;
+    for (int ii = 1; ii <= NN; ii++) {
+        I = 2 * ii + NPAR;
+        J += 1;
+        I2 = I + I + INIT.ME2 - 1;
+        MAT.A[J] = INIT.PE2 * (I * (I - 1)) / (I2 * (I2 - 2));
+    }
+    KS = NN - 1;
+    for (int II = 1; II <= KS; II++) {
+        J = J + 1;
+        I = 2 * II + NPAR;
+        IME = I + TRAP.ME;
+        JJ = IME * (IME + 1);
+        JNU = JJ + JJ - INIT.MEC;
+        I2 = I + I + INIT.ME2 - 1;
+        JDEN = I2 * (I2 + 4);
+        MAT.A[J] = -double(JJ) + INIT.PE2 * JNU / JDEN - AF;
+    }
+    J += 1;
+    MAT.A[J] = 0.0;
+    if (NN == 2) { goto label31; }
+    KS = NN - 2;
+    for (int II = 1; II <= KS; ++II) {
+        I = 2 * II + NPAR;
+        J = J + 1;
+        JNU = INIT.ME2 + I + 1;
+        JDEN = JNU + I + 2;
+        MAT.A[J] = INIT.PE2 * (JNU * (JNU + 1)) / (JDEN * (JDEN + 2));
+    }
+    J += 1;
+    MAT.A[J] = 0;
+    J += 1;
+    MAT.A[J] = 0;
+    M2 = 2;
+label32:
+    BANDET(NN, 0, M2, 0, ZERO, MACH, MAT.A, D1, ID2, MAT.AM, MAT.INT, FAIL);
+    if (FAIL) { cout << "FAIL inside function DFE" << endl; }
+    if (NN == 2) { goto label51; }
+    KS = NN - 2;
+    for (int i = 1; i <= KS; i++) {
+        BF[i] = 0.0;
+    }
+label51:
+    KS = NN - 1;
+    I = 2 * KS + NPAR;
+    JNU = INIT.ME2 + I + 1;
+    JDEN = JNU + I + 2;
+    BF[KS] = INIT.PE2 * (JNU * (JNU + 1)) / (JDEN * (JDEN + 2));
+    KS = NN;
+    I = KS + KS + NPAR;
+    IME = I + TRAP.ME;
+    JJ = IME * (IME + 1);
+    JNU = JJ + JJ - INIT.MEC;
+    I2 = I + I + INIT.ME2 - 1;
+    JDEN = I2 * (I2 + 4);
+    BF[KS] = -double(JJ) + INIT.PE2 * JNU / JDEN - AF;
+    BANSOL(NN, 0, M2, 0, 1, MAT.A, MAT.AM, MAT.INT, BF);
+label12:
+    BF[N] = 1.0;
+    for (int I = 2; I <= N; ++I) {
+        II = N - I + 2;
+
+        KS = II + II + NPAR - 1;
+        BF[KS] = BF[II];
+        KS = KS - 1;
+        BF[KS] = 0 / 0;
+    }
+    BF[NPAR + 1] = BF[1];
+    if (NPAR == 1) { BF[1] = 0.0; }
+    goto labelend;
+label31:
+    M2 = 1;
+    goto label32;
+label11:
+    I = 2 + NPAR;
+    I2 = I + I + INIT.ME2 - 1;
+    MAT.A[1] = INIT.PE2 * double(I * (I - 1)) / double(I2 * (I2 - 2));
+    IME = I + TRAP.ME;
+    JJ = IME * (IME + 1);
+    JNU = JJ + JJ - INIT.MEC;
+    JDEN = I2 * (I2 + 4);
+    MAT.A[2] = -double(JJ) + INIT.PE2 * JNU / JDEN - AF;
+    BF[1] = -MAT.A[2] / MAT.A[1];
+    goto label12;
+labelend:
+    return;
+}
+
 
 void GRAVE(const double QU, int N, int L, int ME, int NR, vector<double> RR, vector<double> GraveP, vector<double> GraveC) {
     double A, AG, DABS, DFLOAT, E, PE, PE2, R, RQU, XF1;
@@ -1069,7 +1239,7 @@ label101:
         switch (JPAR) {
              case 22:
                 DFE(NF, A, TRAP.PE, TRAP.XF, INIT,  TRAP, MAT);
-                //goto label20;
+                goto label20;
             case 220:
                 if (NF < 4) { NF = 4;}
                 NFF = (NF + NCPAR) / 2;
