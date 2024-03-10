@@ -948,9 +948,9 @@ void DFE(int N, double AF, double& PE, vector<double> BF, CommonBlockINIT &INIT,
     //of the expansion of the inner wave-function
 
     //for asymmetric system only
-    double AF, DFLOAT, D1,  I2, IME,JJ,JNU,JDEN;
+    double D1,  I2, IME,JJ,JNU,JDEN;
     const double MACH = 2.3e-16;
-    bool FAIL;
+    bool FAIL=false;
     int NN, J, KS, M2, NS,ID2;
     const double ZERO = 0.0;
     NN = N - 1;
@@ -1047,7 +1047,7 @@ labelend:
 }
 
 
-void DFSYM(int N,double AF,double PE, vector<double> BF, int NPAR, CommonBlockINIT INIT, CommonBlockTRAP TRAP, CommonBlockMAT MAT) {
+void DFSYM(int N,double AF,double PE, vector<double> &BF, int NPAR, CommonBlockINIT &INIT, CommonBlockTRAP &TRAP, CommonBlockMAT &MAT) {
     //Calcualtes the traditional Matrix F and solves the system of linear eqns that gives the
     //coeff of the inner wave function
     //For QU = 1 (symmetrical system) only.
@@ -1123,7 +1123,7 @@ label12:
         KS = II + II + NPAR - 1;
         BF[KS] = BF[II];
         KS = KS - 1;
-        BF[KS] = 0 / 0;
+        BF[KS] = 0.0;
     }
     BF[NPAR + 1] = BF[1];
     if (NPAR == 1) { BF[1] = 0.0; }
@@ -1148,7 +1148,7 @@ labelend:
 
 
 void GRAVE(const double QU, int N, int L, int ME, int NR, vector<double> RR, vector<double> GraveP, vector<double> GraveC) {
-    double A, AG, DABS, DFLOAT, E, PE, PE2, R, RQU, XF1;
+    double A,AG, DABS, DFLOAT, E, PE, R,  XF1;
     int NG, NF, MYINDEX;
     int JWRIT, NGMAX, NFMAX, NGIN, NFIN, NSTATE, XGMAX, XFMAX, NFPMAX;
     bool NGTEST, NFTEST;
@@ -1169,7 +1169,10 @@ void GRAVE(const double QU, int N, int L, int ME, int NR, vector<double> RR, vec
     double& SIGMA = INIT.SIGMA;
     double& EM = INIT.EM;
     double& CEM = INIT.CEM;
- 
+    double& PE2 = INIT.PE2;
+    double& RQU = INIT.RQU;
+    double& ME2 = INIT.ME2;
+    double& MEC = INIT.MEC;
 
 
     const int IVER = 2;
@@ -1219,35 +1222,78 @@ void GRAVE(const double QU, int N, int L, int ME, int NR, vector<double> RR, vec
     NCPAR = 1 - NPAR;
     NFPMAX = 2 * ((NFMAX + NCPAR) / 2) - NCPAR;
 label101:
-    int ME2 = 2*ME;
-    int MEC = 2 * ME * ME + 1;
+    INIT.ME2 = 2*ME;
+    INIT.MEC = 2 * ME * ME + 1;
     //start looping on internuclear distance
     // i = 2 because GraveP, GraceC and RR start with the second index
-    for (int i = 2; i <= NR; i++) {
+    for (int i = 1; i <= NR; i++) {
         R = RR[i];
         PE = GraveP[i];
         A = GraveC[i];
-        RQU = R * (QU - 1.0);
-        PE2 = PE * PE;
+        INIT.RQU = R * (QU - 1.0);
+        INIT.PE2 = PE * PE;
         AG = -A;
         E = -2 * PE * PE / (R * R);
         NGTEST = true;
         NFTEST = true;
         SIGMA = R * (1.0 + QU) / (2.0 * PE) - 1.0 - EM;
-        CEM = EM * (EM + SIGMA + 1.0) + SIGMA * (1.0 + 2.0 * PE) - PE2;
+        CEM = EM * (EM + SIGMA + 1.0) + SIGMA * (1.0 + 2.0 * PE) - INIT.PE2;
         DGE(NG, AG, PE, TRAP.XG, INIT, MAT);
+    labelJPAR:
+
         switch (JPAR) {
              case 22:
                 DFE(NF, A, TRAP.PE, TRAP.XF, INIT,  TRAP, MAT);
-                goto label20;
             case 220:
                 if (NF < 4) { NF = 4;}
                 NFF = (NF + NCPAR) / 2;
                 NF = 2 * NFF - NCPAR;
-            //DFSYM(NFF, A, PE, TRAP.XF, NPAR);
-       
-            //check if enough terms in series to achieve required precision
+                DFSYM(NFF, A, PE, TRAP.XF, NPAR, INIT, TRAP, MAT);       
         }
+        //check if enough terms in series to achieve required precision
+    label20:
+        if (abs(TRAP.XG[1] > XGMAX)) { goto label11; }
+        NGTEST = false;
+        if (NG < NGMAX) { goto label19; }
+        goto label11;
+    label19:
+        XF1 = TRAP.XF[1];
+        if (abs(XF1) < 1e-10) { XF1 = TRAP.XF[2]; }
+        if (abs(XF1) > XFMAX) { goto label12; }
+        NGTEST = false;
+        if (NF < NFPMAX) { goto label16; }
+        goto label12;
+    label11:
+        XF1 = TRAP.XF[1];
+        if(abs(XF1)<1e-10) XF1 = TRAP.XF[2];
+        if(abs(XF1)>XFMAX) goto label13;
+        NFTEST = false;
+        if (NF < NFPMAX) {
+            goto label17;
+        };
+        goto label13;
+    label12:
+        NG += 2;
+        if (NG > NGMAX) { NG = NGMAX; }
+        DGE(NG, AG, PE, TRAP.XG, INIT, MAT);
+        goto label20;
+    label16:
+        NG += 2;
+        if (NG > NGMAX) { NG = NGMAX; }
+        NF += 2;
+        if (NF > NFPMAX) { NF = NFPMAX; }
+        DGE(NG, AG, PE, TRAP.XG, INIT, MAT);
+        goto labelJPAR;
+    label17:
+        NF += 2;
+        if (NF > NFPMAX) { NF = NFPMAX; }
+        goto labelJPAR;
+    label13:
+        //printing begins
+        cout << "XF "<<TRAP.XF[1] << " " << TRAP.XF[2] << " " << TRAP.XF[3] << " " << TRAP.XF[4] << " " << TRAP.XF[5] << endl;
+        cout <<"XG "<<TRAP.XG[1] << " " << TRAP.XG[2] << " " << TRAP.XG[3] << " " << TRAP.XG[4] << " " << TRAP.XG[5] << endl;
+        if (NGTEST and NG != 2) { NG -= 1; }
+        if (NFTEST and NF != 2) { NF -= 1; }
     }
     return;
 }
@@ -1261,7 +1307,11 @@ int main() {
     vector <double> PP(999), CSEP(999), RR(999);
     vector <double>GraveP(999), GraveC(999);
     wave_function(QU,N, L, M, RR, PP, CSEP,GraveP,GraveC);
-    GraveP;
+    RR.erase(RR.begin());
+    PP.erase(PP.begin());
+    CSEP.erase(CSEP.begin());
+    GraveP.erase(GraveP.begin());
+    GraveC.erase(GraveC.begin());
     GRAVE(QU, N, L, M, NR, RR, GraveP, GraveC);
 
 
