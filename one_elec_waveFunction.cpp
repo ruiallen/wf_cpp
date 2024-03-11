@@ -4,6 +4,7 @@
 #include <iostream>
 #include <vector>
 #include<cmath>
+#include<tuple>
 using namespace std;
 
 void CORR(double ZA, double ZB, double N, int L, int M, double &NS, int &K, int &ICEN) {
@@ -1148,7 +1149,7 @@ labelend:
 }
 
 
-void GRAVE(const double QU, int N, int L, int ME, int NR, vector<double> RR, vector<double> GraveP, vector<double> GraveC) {
+tuple<vector<vector<double>>, vector<vector<double>>, vector<vector<double>>> GRAVE(const double QU, int N, int L, int ME, int NR, vector<double> RR, vector<double> GraveP, vector<double> GraveC) {
     double AG, DABS, DFLOAT, E, XF1;
     int NG, NF, MYINDEX;
     int JWRIT, NGMAX, NFMAX, NGIN, NFIN, NSTATE, XGMAX, XFMAX, NFPMAX;
@@ -1159,6 +1160,11 @@ void GRAVE(const double QU, int N, int L, int ME, int NR, vector<double> RR, vec
     vector<double> SWITCH(999);
     vector<double> AOUT(88);
     // &QU = AOUT, not sure why placeholder for future review.
+    //output array for MEDOC
+    vector<vector<double>> params;
+    vector<vector<double>> XGRes;
+    vector<vector<double>> XFRes;
+
     const int JAOUT = 88;
 
 
@@ -1243,7 +1249,7 @@ label101:
     INIT.MEC = 2 * ME * ME + 1;
     //start looping on internuclear distance
     // i = 2 because GraveP, GraceC and RR start with the second index
-    for (int i = 1; i <= NR; i++) {
+    for (int i = 1; i < NR; i++) {
         TRAP.R = RR[i];
         TRAP.PE = GraveP[i];
         TRAP.A = GraveC[i];
@@ -1307,12 +1313,20 @@ label101:
         goto labelJPAR;
     label13:
         //printing begins
-        cout << NF<<" XF "<<TRAP.XF[1] << " " << TRAP.XF[2] << " " << TRAP.XF[3] << " " << TRAP.XF[4] << " " << TRAP.XF[5] << endl;
-        cout <<NG<<" XG "<<TRAP.XG[1] << " " << TRAP.XG[2] << " " << TRAP.XG[3] << " " << TRAP.XG[4] << " " << TRAP.XG[5] << endl;
+        cout << E << " " << PE << " " << A << " " << NG << " " << NF << endl;
+        //cout << NF<<" XF "<<TRAP.XF[1] << " " << TRAP.XF[2] << " " << TRAP.XF[3] << " " << TRAP.XF[4] << " " << TRAP.XF[5] << endl;
+        //cout <<NG<<" XG "<<TRAP.XG[1] << " " << TRAP.XG[2] << " " << TRAP.XG[3] << " " << TRAP.XG[4] << " " << TRAP.XG[5] << endl;
+        //output results
+        vector<double> curParam = { E,PE,A,double(NG),double(NF) };
+        params.push_back(curParam);
+        
+        XGRes.push_back(TRAP.XG);
+        XFRes.push_back(TRAP.XF);
+
         if (NGTEST and NG != 2) { NG -= 1; }
         if (NFTEST and NF != 2) { NF -= 1; }
     }
-    return;
+    return make_tuple(params,XGRes,XFRes);
 }
 
 int main() {
@@ -1324,7 +1338,7 @@ int main() {
     vector <double> PP(999), CSEP(999), RR(999);
     vector <double>GraveP(999), GraveC(999);
     wave_function(QU,N, L, M, RR, PP, CSEP,GraveP,GraveC);
-    //cout << "graveP " << GraveP[1] << " " << GraveP[2] << " " << GraveP[3] << " " << GraveP[4] << " " << GraveP[5] << endl;
+    cout << "graveP " << GraveP[1] << " " << GraveP[2] << " " << GraveP[3] << " " << GraveP[4] << " " << GraveP[5] << endl;
     //cout << "graveC " << GraveC[1] << " " << GraveC[2] << " " << GraveC[3] << " " << GraveC[4] << " " << GraveC[5] << endl;
 
 
@@ -1334,10 +1348,12 @@ int main() {
     CSEP.erase(CSEP.begin());
     GraveP.erase(GraveP.begin());
     GraveC.erase(GraveC.begin());
-    GRAVE(QU, N, L, M, NR, RR, GraveP, GraveC);
-
-
-
+    //vector<double> param1;
+    //vector<vector<double>> XGres1;
+    //vector<vector<double>> XFres1;
+    tuple<vector<vector<double>>, vector<vector<double>>, vector<vector<double>>> GRAVERes1;
+    GRAVERes1 = GRAVE(QU, N, L, M, NR, RR, GraveP, GraveC);
+    
 
     return 0;
 }
