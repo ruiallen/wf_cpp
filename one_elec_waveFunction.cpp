@@ -1307,8 +1307,8 @@ label101:
         goto labelJPAR;
     label13:
         //printing begins
-        cout << "XF "<<TRAP.XF[1] << " " << TRAP.XF[2] << " " << TRAP.XF[3] << " " << TRAP.XF[4] << " " << TRAP.XF[5] << endl;
-        cout <<"XG "<<TRAP.XG[1] << " " << TRAP.XG[2] << " " << TRAP.XG[3] << " " << TRAP.XG[4] << " " << TRAP.XG[5] << endl;
+        cout << NF<<" XF "<<TRAP.XF[1] << " " << TRAP.XF[2] << " " << TRAP.XF[3] << " " << TRAP.XF[4] << " " << TRAP.XF[5] << endl;
+        cout <<NG<<" XG "<<TRAP.XG[1] << " " << TRAP.XG[2] << " " << TRAP.XG[3] << " " << TRAP.XG[4] << " " << TRAP.XG[5] << endl;
         if (NGTEST and NG != 2) { NG -= 1; }
         if (NFTEST and NF != 2) { NF -= 1; }
     }
@@ -1316,7 +1316,7 @@ label101:
 }
 
 int main() {
-    int N = 2;
+    int N = 1;
     int L = 0;
     int M = 0;
     int NR = 100;
