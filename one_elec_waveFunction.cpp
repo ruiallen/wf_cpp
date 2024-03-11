@@ -1329,31 +1329,51 @@ label101:
     return make_tuple(params,XGRes,XFRes);
 }
 
+void MEDOC(int N1, int L1, int M1, int N2, int L2, int M2, NR, RR, tuple<vector<vector<double>>, vector<vector<double>>, vector<vector<double>>> GRAVERes1, tuple<vector<vector<double>>, vector<vector<double>>, vector<vector<double>>> GRAVERes2, vector<double> couplings) {
+    return;
+}
+
+
+
 int main() {
-    int N = 1;
-    int L = 0;
-    int M = 0;
-    int NR = 100;
-    const int QU = 1; //make sure only work on one type of system
-    vector <double> PP(999), CSEP(999), RR(999);
-    vector <double>GraveP(999), GraveC(999);
-    wave_function(QU,N, L, M, RR, PP, CSEP,GraveP,GraveC);
-    cout << "graveP " << GraveP[1] << " " << GraveP[2] << " " << GraveP[3] << " " << GraveP[4] << " " << GraveP[5] << endl;
-    //cout << "graveC " << GraveC[1] << " " << GraveC[2] << " " << GraveC[3] << " " << GraveC[4] << " " << GraveC[5] << endl;
-
-
-
-    RR.erase(RR.begin());
-    PP.erase(PP.begin());
-    CSEP.erase(CSEP.begin());
-    GraveP.erase(GraveP.begin());
-    GraveC.erase(GraveC.begin());
-    //vector<double> param1;
-    //vector<vector<double>> XGres1;
-    //vector<vector<double>> XFres1;
-    tuple<vector<vector<double>>, vector<vector<double>>, vector<vector<double>>> GRAVERes1;
-    GRAVERes1 = GRAVE(QU, N, L, M, NR, RR, GraveP, GraveC);
+    vector<double> RR(999);
     
+    const int NR = 100;
+    const int QU = 1; //make sure only work on one type of system
+
+    //state1 declaration
+    int N1 = 1;
+    int L1 = 0;
+    int M1 = 0;
+    vector <double> PP1(999), CSEP1(999);
+    vector <double> GraveP1(999), GraveC1(999);
+    wave_function(QU,N1, L1, M1, RR, PP1, CSEP1,GraveP1,GraveC1);
+    //post-processing
+    RR.erase(RR.begin());
+    PP1.erase(PP1.begin());
+    CSEP1.erase(CSEP1.begin());
+    GraveP1.erase(GraveP1.begin());
+    GraveC1.erase(GraveC1.begin());
+    tuple<vector<vector<double>>, vector<vector<double>>, vector<vector<double>>> GRAVERes1;
+    GRAVERes1 = GRAVE(QU, N1, L1, M1, NR, RR, GraveP1, GraveC1);
+    
+
+    //state2
+    int N2 = 2;
+    int L2 = 0;
+    int M2 = 0;
+    vector <double> PP2(999), CSEP2(999);
+    vector <double> GraveP2(999), GraveC2(999);
+    wave_function(QU, N2, L2, M2, RR, PP2, CSEP2, GraveP2, GraveC2);
+    tuple<vector<vector<double>>, vector<vector<double>>, vector<vector<double>>> GRAVERes2;
+    GRAVERes2 = GRAVE(QU, N2, L2, M2, NR, RR, GraveP2, GraveC2);
+    PP2.erase(PP2.begin());
+    CSEP2.erase(CSEP2.begin());
+    GraveP2.erase(GraveP2.begin());
+    GraveC2.erase(GraveC2.begin());
+    vector<double> couplings;
+    MEDOC(N1, L1, M1, N2, L2, M2, NR, RR,  GRAVERes1,  GRAVERes2, couplings);
+
 
     return 0;
 }
