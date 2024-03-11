@@ -620,7 +620,8 @@ label9:
 
 struct CommonBlockTRAP {
     //used to transfer quantities defining the wave fucntion to different subroutines in GRAVE
-    double QU, R, ME, N, L, IVER, E, PE, A, NG, NF;
+    double QU, R,  IVER, E, PE, A, NG, NF;
+    int ME, N, L;
     std::vector<double> XG = vector<double>(41);
     std::vector<double> XF = vector<double>(41);
 
@@ -1148,7 +1149,7 @@ labelend:
 
 
 void GRAVE(const double QU, int N, int L, int ME, int NR, vector<double> RR, vector<double> GraveP, vector<double> GraveC) {
-    double A,AG, DABS, DFLOAT, E, PE, R,  XF1;
+    double AG, DABS, DFLOAT, E, XF1;
     int NG, NF, MYINDEX;
     int JWRIT, NGMAX, NFMAX, NGIN, NFIN, NSTATE, XGMAX, XFMAX, NFPMAX;
     bool NGTEST, NFTEST;
@@ -1163,6 +1164,9 @@ void GRAVE(const double QU, int N, int L, int ME, int NR, vector<double> RR, vec
 
     CommonBlockTRAP TRAP = {};
     TRAP.QU = QU;
+    TRAP.N = N;
+    TRAP.L = L;
+    TRAP.ME = ME;
     CommonBlockINIT INIT = {};
     CommonBlockMAT MAT = {};
     //declare reference objects for simplicity
@@ -1174,6 +1178,19 @@ void GRAVE(const double QU, int N, int L, int ME, int NR, vector<double> RR, vec
     double& ME2 = INIT.ME2;
     double& MEC = INIT.MEC;
 
+    //reference for TRAP
+    /*
+    
+    
+    int& N = TRAP.N;
+    int& L = TRAP.L;
+    int& ME = TRAP.ME;
+    double& E = TRAP.E;
+    
+    */
+    double& PE = TRAP.PE;
+    double& A = TRAP.A;
+    double& R = TRAP.R;
 
     const int IVER = 2;
     //for now, ignore all reads in and set parameters directly. Need to be more dynamic in the future. 
@@ -1227,23 +1244,23 @@ label101:
     //start looping on internuclear distance
     // i = 2 because GraveP, GraceC and RR start with the second index
     for (int i = 1; i <= NR; i++) {
-        R = RR[i];
-        PE = GraveP[i];
-        A = GraveC[i];
-        INIT.RQU = R * (QU - 1.0);
+        TRAP.R = RR[i];
+        TRAP.PE = GraveP[i];
+        TRAP.A = GraveC[i];
+        INIT.RQU = TRAP.R * (QU - 1.0);
         INIT.PE2 = PE * PE;
-        AG = -A;
-        E = -2 * PE * PE / (R * R);
+        AG = -TRAP.A;
+        E = -2 * PE * PE / (TRAP.R * TRAP.R);
         NGTEST = true;
         NFTEST = true;
-        SIGMA = R * (1.0 + QU) / (2.0 * PE) - 1.0 - EM;
+        SIGMA = TRAP.R * (1.0 + QU) / (2.0 * TRAP.PE) - 1.0 - EM;
         CEM = EM * (EM + SIGMA + 1.0) + SIGMA * (1.0 + 2.0 * PE) - INIT.PE2;
-        DGE(NG, AG, PE, TRAP.XG, INIT, MAT);
+        DGE(NG, AG, TRAP.PE, TRAP.XG, INIT, MAT);
     labelJPAR:
 
         switch (JPAR) {
              case 22:
-                DFE(NF, A, TRAP.PE, TRAP.XF, INIT,  TRAP, MAT);
+                DFE(NF, TRAP.A, TRAP.PE, TRAP.XF, INIT,  TRAP, MAT);
             case 220:
                 if (NF < 4) { NF = 4;}
                 NFF = (NF + NCPAR) / 2;
@@ -1252,7 +1269,7 @@ label101:
         }
         //check if enough terms in series to achieve required precision
     label20:
-        if (abs(TRAP.XG[1] > XGMAX)) { goto label11; }
+        if (abs(TRAP.XG[1]) > XGMAX) { goto label11; }
         NGTEST = false;
         if (NG < NGMAX) { goto label19; }
         goto label11;
@@ -1299,7 +1316,7 @@ label101:
 }
 
 int main() {
-    int N = 1;
+    int N = 2;
     int L = 0;
     int M = 0;
     int NR = 100;
@@ -1307,6 +1324,11 @@ int main() {
     vector <double> PP(999), CSEP(999), RR(999);
     vector <double>GraveP(999), GraveC(999);
     wave_function(QU,N, L, M, RR, PP, CSEP,GraveP,GraveC);
+    //cout << "graveP " << GraveP[1] << " " << GraveP[2] << " " << GraveP[3] << " " << GraveP[4] << " " << GraveP[5] << endl;
+    //cout << "graveC " << GraveC[1] << " " << GraveC[2] << " " << GraveC[3] << " " << GraveC[4] << " " << GraveC[5] << endl;
+
+
+
     RR.erase(RR.begin());
     PP.erase(PP.begin());
     CSEP.erase(CSEP.begin());
