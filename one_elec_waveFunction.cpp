@@ -419,7 +419,7 @@ label5:
 
 //to do pack main() into function wf
 
-void wave_function(int QU, int N, int L, int M, vector<double>& RR, vector<double>& PP, vector<double>& CSEP, vector<double>& GraveP, vector<double>& GraveC)
+void wave_function(int QU, int N, int L, int M, int NR, vector<double>& RR, vector<double>& PP, vector<double>& CSEP, vector<double>& GraveP, vector<double>& GraveC)
 {
     //define constants, As of now not sure their functionality
     vector<int> IACDFT{ 0,11,11,10,10 };
@@ -528,7 +528,7 @@ void wave_function(int QU, int N, int L, int M, vector<double>& RR, vector<doubl
 
     //Begin loop over R values
     // we have already initialized i = 0 case. 
-    int NR = NOPTS - ISTART + 1;
+    //int NR = NOPTS - ISTART + 1;
     for (int i = ISTART; i <= NR; ++i) {
         double R = RR[i];
         //IGO=1,2, OR 3 RESPECTIVELY FOR HETERONUCLEAR SMALL R, 
@@ -1150,7 +1150,7 @@ labelend:
 
 
 tuple<vector<vector<double>>, vector<vector<double>>, vector<vector<double>>> GRAVE(const double QU, int N, int L, int ME, int NR, vector<double> RR, vector<double> GraveP, vector<double> GraveC) {
-    double AG, DABS, DFLOAT, E, XF1;
+    double AG, DABS, DFLOAT, XF1;
     int NG, NF, MYINDEX;
     int JWRIT, NGMAX, NFMAX, NGIN, NFIN, NSTATE, XGMAX, XFMAX, NFPMAX;
     bool NGTEST, NFTEST;
@@ -1197,7 +1197,7 @@ tuple<vector<vector<double>>, vector<vector<double>>, vector<vector<double>>> GR
     double& PE = TRAP.PE;
     double& A = TRAP.A;
     double& R = TRAP.R;
-
+    double& E = TRAP.E;
     const int IVER = 2;
     //for now, ignore all reads in and set parameters directly. Need to be more dynamic in the future. 
     /****************************************************************************************************************************** 
@@ -1326,10 +1326,90 @@ label101:
         if (NGTEST and NG != 2) { NG -= 1; }
         if (NFTEST and NF != 2) { NF -= 1; }
     }
+    cout << "GRAVE complete successfully" << endl;
     return make_tuple(params,XGRes,XFRes);
 }
 
-void MEDOC(int N1, int L1, int M1, int N2, int L2, int M2, NR, RR, tuple<vector<vector<double>>, vector<vector<double>>, vector<vector<double>>> GRAVERes1, tuple<vector<vector<double>>, vector<vector<double>>, vector<vector<double>>> GRAVERes2, vector<double> couplings) {
+void MEDOC(double QU, int N1, int L1, int M1, int N2, int L2, int M2, int NR, vector<double> RR, tuple<vector<vector<double>>, vector<vector<double>>, vector<vector<double>>> GRAVERes1, tuple<vector<vector<double>>, vector<vector<double>>, vector<vector<double>>> GRAVERes2, vector<double> couplings) {
+    double AO = 0.5; //subject to change later
+    double OMZUT = 1.0 - 2 * AO;
+    int JPERF;
+    int NN, L, ME, NNP, LP, MEP;//state quantum number
+    double R, RP;
+    //state specific results from function GRAVE.
+    int NG, NF, NGP, NFP;
+    double E, EP, PE, PEP;
+    vector<double> XG, XF, XGP, XFP, param1, param2;
+    //loop through internuclear distances
+    for (int JN = 1; JN < NR; JN++) {
+        R = RR[JN];
+        RP = R;
+        //reads in outputs from Grave
+        if (M1 > M2) {
+            //bra
+            NN = N1;
+            L = L1;
+            ME = M1;
+            param1 = get<0>(GRAVERes1)[JN - 1];
+            E = param1[1];
+            PE = param1[2];
+            NG = param1[3];
+            NF = param1[4];
+            vector<double> tempXG = get<1>(GRAVERes1)[JN - 1];
+            vector<double> tempXF = get<2>(GRAVERes1)[JN - 1];
+            XG = vector<double>(tempXG.begin() + 1, tempXG.begin() + NG);
+            XF = vector<double>(tempXF.begin() + 1, tempXG.begin() + NF);
+            //ket
+            NNP = N2;
+            LP = L2;
+            MEP = M2;
+            param2 = get<0>(GRAVERes2)[JN - 1];
+            EP = param2[1];
+            PEP = param2[2];
+            NGP = param2[3];
+            NFP = param2[4];
+            vector<double> tempXGP = get<1>(GRAVERes2)[JN - 1];
+            vector<double> tempXFP = get<2>(GRAVERes2)[JN - 1];
+            XGP = vector<double>(tempXGP.begin() + 1, tempXGP.begin() + NGP);
+            XFP = vector<double>(tempXFP.begin() + 1, tempXGP.begin() + NFP);
+        }
+        else {
+            //bra is the second input set
+            NN = N2;
+            L = L2;
+            ME = M2;
+            param2 = get<0>(GRAVERes2)[JN - 1];
+            E = param2[1];
+            PE = param2[2];
+            NG = param2[3];
+            NF = param2[4];
+            vector<double> tempXG = get<1>(GRAVERes2)[JN - 1];
+            vector<double> tempXF = get<2>(GRAVERes2)[JN - 1];
+            XG = vector<double>(tempXG.begin() + 1, tempXG.begin() + NG);
+            XF = vector<double>(tempXF.begin() + 1, tempXG.begin() + NF);
+            //ket is the first input set
+            NNP = N1;
+            LP = L1;
+            MEP = M2;
+            param1 = get<0>(GRAVERes1)[JN - 1];
+            EP = param1[1];
+            PEP = param1[2];
+            NGP = param1[3];
+            NFP = param1[4];
+            vector<double> tempXGP = get<1>(GRAVERes1)[JN - 1];
+            vector<double> tempXFP = get<2>(GRAVERes1)[JN - 1];
+            XGP = vector<double>(tempXGP.begin() + 1, tempXGP.begin() + NGP);
+            XFP = vector<double>(tempXFP.begin() + 1, tempXGP.begin() + NFP);
+        }
+        //data reads in complete, keep looping over internuclear distance.
+
+
+    }
+
+
+
+
+
     return;
 }
 
@@ -1347,7 +1427,7 @@ int main() {
     int M1 = 0;
     vector <double> PP1(999), CSEP1(999);
     vector <double> GraveP1(999), GraveC1(999);
-    wave_function(QU,N1, L1, M1, RR, PP1, CSEP1,GraveP1,GraveC1);
+    wave_function(QU,N1, L1, M1, NR,RR, PP1, CSEP1,GraveP1,GraveC1);
     //post-processing
     RR.erase(RR.begin());
     PP1.erase(PP1.begin());
@@ -1359,20 +1439,23 @@ int main() {
     
 
     //state2
-    int N2 = 2;
+    int N2 = 1;
     int L2 = 0;
     int M2 = 0;
+    vector<double> RR2(999);
     vector <double> PP2(999), CSEP2(999);
     vector <double> GraveP2(999), GraveC2(999);
-    wave_function(QU, N2, L2, M2, RR, PP2, CSEP2, GraveP2, GraveC2);
+    wave_function(QU, N2, L2, M2, NR,RR2, PP2, CSEP2, GraveP2, GraveC2);
     tuple<vector<vector<double>>, vector<vector<double>>, vector<vector<double>>> GRAVERes2;
-    GRAVERes2 = GRAVE(QU, N2, L2, M2, NR, RR, GraveP2, GraveC2);
+    RR2.erase(RR2.begin());
     PP2.erase(PP2.begin());
     CSEP2.erase(CSEP2.begin());
     GraveP2.erase(GraveP2.begin());
     GraveC2.erase(GraveC2.begin());
+    GRAVERes2 = GRAVE(QU, N2, L2, M2, NR, RR2, GraveP2, GraveC2);
+    
     vector<double> couplings;
-    MEDOC(N1, L1, M1, N2, L2, M2, NR, RR,  GRAVERes1,  GRAVERes2, couplings);
+    MEDOC(QU, N1, L1, M1, N2, L2, M2, NR, RR, GRAVERes1, GRAVERes2, couplings);
 
 
     return 0;
