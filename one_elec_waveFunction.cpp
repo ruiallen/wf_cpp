@@ -1313,7 +1313,7 @@ label101:
         goto labelJPAR;
     label13:
         //printing begins
-        cout << E << " " << PE << " " << A << " " << NG << " " << NF << endl;
+        //cout << E << " " << PE << " " << A << " " << NG << " " << NF << endl;
         //cout << NF<<" XF "<<TRAP.XF[1] << " " << TRAP.XF[2] << " " << TRAP.XF[3] << " " << TRAP.XF[4] << " " << TRAP.XF[5] << endl;
         //cout <<NG<<" XG "<<TRAP.XG[1] << " " << TRAP.XG[2] << " " << TRAP.XG[3] << " " << TRAP.XG[4] << " " << TRAP.XG[5] << endl;
         //output results
@@ -1330,6 +1330,102 @@ label101:
     return make_tuple(params,XGRes,XFRes);
 }
 
+struct Gauss
+{ //can be expanded with more terms in the future
+    int NXI = 20;
+    //the first term in XI and OMEGA are place holder for simplicity, because of 0-indexed and 1-indexed. 
+    vector<double> XI{ 0,0.07053989,0.372126818,0.916582102,1.707306531,2.749199255,4.048925314,5.615174971,7.459017454,9.59439287,12.03880255,14.81429344,17.94889552,21.47878824,25.45170279,
+            29.93255463,35.01343424,40.83305706,47.61999405,55.81079575,66.52441653 };
+    vector<double> OMEGA{0, 0.181080062,0.422556768,0.666909547,0.915352373,1.169539707,1.431354986,1.702981138,1.987015891,2.286635781,2.605834728,2.949783734,3.325395782,
+            3.742255471,4.21423671,4.762518461,5.421726044,6.254012357,7.387314389,9.151328731,12.89338865 };
+
+};
+
+void NORDIF(int ME, double PE, double SIGMA, int NG, vector<double>XG, int NF, vector<double>XF, double& FNOR, double R) {
+    //calcualte the norm of a given wavefunciton
+    //in GRAVE, the last term in semi-analytical expansion is set equal to 1. Here the first non-zero term is equal to 1
+    //The norm is calculated for this new form of expansion.
+    double ALAM, ALAMXI, ALAM1, ALAM2, ALPHA, BETA, DEXP, DLOG,  FONC, PP,SAM, SG, SIM, SPG, SUM, TROC, TRUC, XF2, XN, Y;
+    double IS, IM, IME, NFP;
+    Gauss Gauss;
+    int NXI = Gauss.NXI;
+    vector<double> XI = Gauss.XI;
+    vector<double> OMEGA = Gauss.OMEGA;
+    XN = XG[1];
+    for (int K = 1; K <= NG;K++) {
+        XG[K] = XG[K] / XN;
+    }
+    XN = XF[1];
+    if (XN == 0) { XN = XF[2]; }
+    for (int k = 1; k <= NF; k++) {
+        XF[k] = XF[k] / XN;
+    }
+    //integration over mu in spheridol prolate coordinate
+    double IALPHA = 1;
+    int ME2 = 2 * ME;
+    for (int K = 1; K <= ME2; K++) {
+        IALPHA = IALPHA * K;
+    }
+    SAM = 0;
+    SUM = 0;
+    ALPHA = IALPHA;
+    for (int IT = 1; IT <= NF; IT++) {
+        IS = IT - 1;
+        XF2 = XF[IT] * XF[IT];
+        IM = ME2 + IS;
+        IME = IM + IS + 1;
+        SUM = SUM + ALPHA * 2.0 * XF2 / IME;
+        TROC = ((IT) * (IM + 1)) / (IME + 2);
+        TROC = TROC + (IS * IM) / (IME - 2);
+        TROC = TROC / (IME * IME);
+        SAM = SAM + ALPHA * 2.0 * XF2 * TROC;
+        ALPHA = ALPHA * (IM + 1) /IT;
+    }
+    BETA = (IALPHA * (ME2 + 1) * (ME2 + 2));
+    SIM = 0;
+    if (NF <= 2) { goto label21; }
+    NFP = NF - 2;
+    for (int IT = 1; IT <= NFP; IT++) {
+        IS = IT - 1;
+        IME = ME2 + IS + IS + 1;                                                  
+        SIM = SIM + 4.0 * XF[IT] * XF[IT + 2] * BETA / (IME * (IME + 2) * (IME + 4));
+        BETA = BETA * (ME2 + IS + 3) /double(IT);
+    }
+label21:
+    SAM = SAM + SIM;
+    //integration over Lambda coord
+    SG = 0.0;
+    SPG = 0.0;
+    PP = 2.0 * PE;
+    for (int N = 1; N <= Gauss.NXI; N++) {
+        ALAM = XI[N] / PP + 1.0;
+        ALAM1 = ALAM - 1.0;
+        ALAM2 = ALAM + 1.0;
+        ALAMXI = ALAM1 / ALAM2;
+        FONC = exp(-PE * ALAM + SIGMA * log(ALAM2));
+        //(FONC = (lam+1)^sig*exp(-p*lam))
+        FONC = FONC * FONC;
+        TRUC = ALAM1 * ALAM2;
+        //TRUC = (lam+1)*(lam-1)
+
+        TRUC = pow(TRUC, ME);
+        //^m/2*^m/2 = ^m
+        FONC = FONC * TRUC;
+        Y = 0;
+        for (int JN = 1; JN <= NG; JN++) {
+            Y += XG[JN] * pow(ALAMXI, JN - 1);
+        }
+        FONC = FONC * Y * Y * OMEGA[N];
+        SG += FONC;
+        SPG += FONC * ALAM * ALAM;
+    }
+    SG = SG / PP;
+    SPG = SPG / PP;
+    FNOR = R * R * R * (SPG * SUM - SG * SAM) / 8.0;
+    FNOR = sqrt(1 / FNOR);
+    return;
+}
+
 void MEDOC(double QU, int N1, int L1, int M1, int N2, int L2, int M2, int NR, vector<double> RR, tuple<vector<vector<double>>, vector<vector<double>>, vector<vector<double>>> GRAVERes1, tuple<vector<vector<double>>, vector<vector<double>>, vector<vector<double>>> GRAVERes2, vector<double> couplings) {
     double AO = 0.5; //subject to change later
     double OMZUT = 1.0 - 2 * AO;
@@ -1340,68 +1436,87 @@ void MEDOC(double QU, int N1, int L1, int M1, int N2, int L2, int M2, int NR, ve
     int NG, NF, NGP, NFP;
     double E, EP, PE, PEP;
     vector<double> XG, XF, XGP, XFP, param1, param2;
+    double SIGMA, SIGMAP;
+    double FNOR, FNORP;
     //loop through internuclear distances
     for (int JN = 1; JN < NR; JN++) {
         R = RR[JN];
         RP = R;
         //reads in outputs from Grave
-        if (M1 > M2) {
+        if ( abs(M1-M2)-1 <0 or (abs(M1-M2) == 1 and M1 <M2)) {
             //bra
             NN = N1;
             L = L1;
             ME = M1;
             param1 = get<0>(GRAVERes1)[JN - 1];
-            E = param1[1];
-            PE = param1[2];
+            E = param1[0];
+            PE = param1[1];
             NG = param1[3];
             NF = param1[4];
             vector<double> tempXG = get<1>(GRAVERes1)[JN - 1];
             vector<double> tempXF = get<2>(GRAVERes1)[JN - 1];
-            XG = vector<double>(tempXG.begin() + 1, tempXG.begin() + NG);
-            XF = vector<double>(tempXF.begin() + 1, tempXG.begin() + NF);
+            XG = vector<double>(tempXG.begin(), tempXG.begin() + NG+1);
+            XF = vector<double>(tempXF.begin(), tempXF.begin() + NF+1);
             //ket
             NNP = N2;
             LP = L2;
             MEP = M2;
             param2 = get<0>(GRAVERes2)[JN - 1];
-            EP = param2[1];
-            PEP = param2[2];
+            EP = param2[0];
+            PEP = param2[1];
             NGP = param2[3];
             NFP = param2[4];
             vector<double> tempXGP = get<1>(GRAVERes2)[JN - 1];
             vector<double> tempXFP = get<2>(GRAVERes2)[JN - 1];
-            XGP = vector<double>(tempXGP.begin() + 1, tempXGP.begin() + NGP);
-            XFP = vector<double>(tempXFP.begin() + 1, tempXGP.begin() + NFP);
+            XGP = vector<double>(tempXGP.begin(), tempXGP.begin() + NGP+1);
+            XFP = vector<double>(tempXFP.begin(), tempXFP.begin() + NFP+1);
         }
-        else {
+        else if (abs(M1-M2)-1 ==0 and M1>M2) {
             //bra is the second input set
             NN = N2;
             L = L2;
             ME = M2;
             param2 = get<0>(GRAVERes2)[JN - 1];
-            E = param2[1];
-            PE = param2[2];
+            E = param2[0];
+            PE = param2[1];
             NG = param2[3];
             NF = param2[4];
             vector<double> tempXG = get<1>(GRAVERes2)[JN - 1];
             vector<double> tempXF = get<2>(GRAVERes2)[JN - 1];
-            XG = vector<double>(tempXG.begin() + 1, tempXG.begin() + NG);
-            XF = vector<double>(tempXF.begin() + 1, tempXG.begin() + NF);
+            XG = vector<double>(tempXG.begin(), tempXG.begin() + NG+1);
+            XF = vector<double>(tempXF.begin(), tempXF.begin() + NF+1);
             //ket is the first input set
             NNP = N1;
             LP = L1;
-            MEP = M2;
+            MEP = M1;
             param1 = get<0>(GRAVERes1)[JN - 1];
-            EP = param1[1];
-            PEP = param1[2];
+            EP = param1[0];
+            PEP = param1[1];
             NGP = param1[3];
             NFP = param1[4];
             vector<double> tempXGP = get<1>(GRAVERes1)[JN - 1];
             vector<double> tempXFP = get<2>(GRAVERes1)[JN - 1];
-            XGP = vector<double>(tempXGP.begin() + 1, tempXGP.begin() + NGP);
-            XFP = vector<double>(tempXFP.begin() + 1, tempXGP.begin() + NFP);
+            XGP = vector<double>(tempXGP.begin(), tempXGP.begin() + NGP+1);
+            XFP = vector<double>(tempXFP.begin(), tempXFP.begin() + NFP+1);
+        }
+        else {
+            cout << "Error, check if state quantum numbers are valid " << endl;
         }
         //data reads in complete, keep looping over internuclear distance.
+        SIGMA = R * (1.0 + QU) / (2.0 * PE) - 1.0 - double(ME);
+        SIGMAP = RP * (1.0 + QU) / (2.0 * PEP) - 1.0 - double(MEP);
+        if (MEP != ME) {
+            //rotational coupling calculation
+            NORDIF(ME, PE, SIGMA, NG, XG, NF, XF, FNOR, R);
+            NORDIF(MEP, PEP, SIGMAP, NGP, XGP, NFP, XFP, FNORP, R);
+            cout << FNOR * FNORP<<endl;
+
+
+
+        }
+        else {
+            //radial coupling calculation
+        }
 
 
     }
@@ -1422,9 +1537,9 @@ int main() {
     const int QU = 1; //make sure only work on one type of system
 
     //state1 declaration
-    int N1 = 1;
-    int L1 = 0;
-    int M1 = 0;
+    int N1 = 2;
+    int L1 = 1;
+    int M1 = 1;
     vector <double> PP1(999), CSEP1(999);
     vector <double> GraveP1(999), GraveC1(999);
     wave_function(QU,N1, L1, M1, NR,RR, PP1, CSEP1,GraveP1,GraveC1);
