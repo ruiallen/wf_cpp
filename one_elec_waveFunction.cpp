@@ -1426,9 +1426,25 @@ label21:
     return;
 }
 
+void ROTDIS(double &CRAD, double &GAMRAD, Gauss Gaussian, vector<double> XFP, vector<double> XGP,int NFP, int NGP, vector<double> XF, vector<double> XG, int NF, int NG, double R, double PE, double PEP, double SIGMA, double SIGMAP, double DELTA, int L, int ME, double OMEZUT) {
+    double  AI, ALAM, ALAMXI, ALAM1, ALAM2, ALPHA,  BI,  CI, COEF, COEFF, DEXP, DLOG,  DY, FISC, FONC, GDEU,GPDEU, GPUN, 
+        GTROI, GUN, SAM, SG, SIM, SJM, SKM, SP, SPG, SPI, SPJ, SPK, SPN, SUM, SUMP, SUMP1, SUMP2, SUM1, SUM2,TRIC, TRUC,  Y, YP, SPK2;
+
+    auto A = [](int I, int I2, int ME, int ME2) -> double {
+        return (-double((I + 1) * (ME + I) * (ME2 + I + 1)) / double(ME2 + I2 + 3) + double((ME2 + I) * (ME + I + 1) * I) / double(ME2 + I2 - 1)) / double(ME2 + I2 + 1);
+        };
+
+    auto B = [](int I, int I2, int ME, int ME2) -> double {
+        return double((ME + I + 3) * (ME2 + I + 2) * (ME2 + I + 1)) / double((ME2 + I2 + 5) * (ME2 + I2 + 3));
+        };
+
+    auto C = [](int I, int I2, int ME, int ME2) -> double {
+        return -double((I - 1) * I * (ME + I - 2)) / double((ME2 + I2 - 3) * (ME2 + I2 - 1));
+        };
+}
 void MEDOC(double QU, int N1, int L1, int M1, int N2, int L2, int M2, int NR, vector<double> RR, tuple<vector<vector<double>>, vector<vector<double>>, vector<vector<double>>> GRAVERes1, tuple<vector<vector<double>>, vector<vector<double>>, vector<vector<double>>> GRAVERes2, vector<double> couplings) {
     double AO = 0.5; //subject to change later
-    double OMZUT = 1.0 - 2 * AO;
+    double OMEZUT = 1.0 - 2 * AO;
     int JPERF;
     int NN, L, ME, NNP, LP, MEP;//state quantum number
     double R, RP;
@@ -1438,6 +1454,12 @@ void MEDOC(double QU, int N1, int L1, int M1, int N2, int L2, int M2, int NR, ve
     vector<double> XG, XF, XGP, XFP, param1, param2;
     double SIGMA, SIGMAP;
     double FNOR, FNORP;
+    double CRAD, GAMRRAD;
+    double CROT, GAMROT;
+    double DELTA{ 0 };
+
+    //gaussian weights
+    Gauss Gaussian;
     //loop through internuclear distances
     for (int JN = 1; JN < NR; JN++) {
         R = RR[JN];
@@ -1510,7 +1532,7 @@ void MEDOC(double QU, int N1, int L1, int M1, int N2, int L2, int M2, int NR, ve
             NORDIF(ME, PE, SIGMA, NG, XG, NF, XF, FNOR, R);
             NORDIF(MEP, PEP, SIGMAP, NGP, XGP, NFP, XFP, FNORP, R);
             cout << FNOR * FNORP<<endl;
-
+            ROTDIS(CROT, GAMROT, Gaussian, XFP,XGP,NFP,NGP, XF,XG,NF,NG, R,PE,PEP,SIGMA,SIGMAP,DELTA,L,ME,OMEZUT);
 
 
         }
