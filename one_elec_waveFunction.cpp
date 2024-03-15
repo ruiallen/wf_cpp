@@ -1429,7 +1429,7 @@ label21:
 void ROTDIS(double &CRAD, double &GAMRAD, Gauss Gaussian, vector<double> XFP, vector<double> XGP,int NFP, int NGP, vector<double> XF, vector<double> XG, int NF, int NG, double R, double PE, double PEP, double SIGMA, double SIGMAP, double DELTA, int L, int ME, double OMEZUT) {
     double  AI, ALAM, ALAMXI, ALAM1, ALAM2, ALPHA,  BI,  CI, COEF, COEFF, DEXP, DLOG,  DY, FISC, FONC, GDEU,GPDEU, GPUN, 
         GTROI, GUN, SAM, SG, SIM, SJM, SKM, SP, SPG, SPI, SPJ, SPK, SPN, SUM, SUMP, SUMP1, SUMP2, SUM1, SUM2,TRIC, TRUC,  Y, YP, SPK2;
-
+    int IBMAX, IN,NMAX,IS,IS2,MIM,IM,IME,IT;
     auto A = [](int I, int I2, int ME, int ME2) -> double {
         return (-double((I + 1) * (ME + I) * (ME2 + I + 1)) / double(ME2 + I2 + 3) + double((ME2 + I) * (ME + I + 1) * I) / double(ME2 + I2 - 1)) / double(ME2 + I2 + 1);
         };
@@ -1441,7 +1441,211 @@ void ROTDIS(double &CRAD, double &GAMRAD, Gauss Gaussian, vector<double> XFP, ve
     auto C = [](int I, int I2, int ME, int ME2) -> double {
         return -double((I - 1) * I * (ME + I - 2)) / double((ME2 + I2 - 3) * (ME2 + I2 - 1));
         };
+    int ME2 = ME * 2;
+    int IALPHA = 1;
+    /*
+    Start Iegrating over
+    *  
+     B and B''
+    *   
+    */
+    for (int k = 1; k <= ME2; k++) {
+        IALPHA = IALPHA * k;
+    }
+    ALPHA = IALPHA;
+    GDEU = -2.0 * ALPHA * double((ME + 2) * (ME2 + 1)) / double (ME2 + 3);
+    GPDEU = -2.0 * ALPHA * double(ME2 + 1) / double(ME2 + 3);                   
+    SP = 0.0;                  
+    IBMAX = (NFP - 1) / 2 + 1;
+    for (int IB = 1; IB <= IBMAX; IB++) {
+        IN = 2 * IB - 1;
+        SP = SP + XFP[IN];
+    }
+    SUM2 = XF[2] * GDEU * SP;
+    SUMP2 = XF[2] * GPDEU * SP;                                              
+    ALPHA = ALPHA * double(ME2 + 1);                                    
+    SUM1 = 0.0; 
+    SUMP1 = 0.0; 
+    NMAX = min(NFP, NF - 1);
+    if (NMAX < 2) { goto label21; }
+    for (int IT = 2; IT <= NMAX; IT++) {
+        IS = IT - 1;                                                           
+        IS2 = 2 * IS;
+        MIM = ME + IS;
+        IM = MIM + ME + 1;
+        IME = IM + IS;
+        GUN = ALPHA * 2.0 * double((MIM - 1) * IS) / double(IME - 2);
+        GPUN = -ALPHA * double(IS2) / double(IME - 2);
+        GDEU = -ALPHA * 2.0 * double((MIM + 2) * IM) / double(IME + 2);
+        GPDEU = -2.0 * ALPHA * double(IM) / double(IME + 2);
+        SP = 0.0;
+        IBMAX = (NFP - IT) / 2 + 1;
+        for (int IB = 1; IB <= IBMAX; IB++) {
+            IN = 2 * IB - 2 + IT;
+            SP = SP + XFP[IN];
+        }
+        SUM1 = SUM1 + XF[IT - 1] * GUN * SP;
+        SUMP1 = SUMP1 + XF[IT - 1] * GPUN * SP;
+        SUM2 = SUM2 + XF[IT + 1] * GDEU * SP;
+        SUMP2 = SUMP2 + XF[IT + 1] * GPDEU * SP;
+        ALPHA = ALPHA * double(IM) / double(IT);
+    }
+label21:
+    if (NFP - NF < 0) {
+        goto label24;
+    }
+    else if (NFP - NF == 0) {
+        goto label27;
+    }
+    else {
+        goto label26;
+    }
+label27:
+    IT = NF;                                                             
+    IS = IT - 1;
+    IS2 = 2 * IS;
+    GUN = ALPHA * 2.0 * double((ME + IS - 1) * IS) / double(ME2 + IS2 - 1);
+    GPUN = -ALPHA * double(IS2) / double(ME2 + IS2 - 1);
+    SP = XFP[IT];
+    SUM1 = SUM1 + XF[IT - 1] * GUN * SP;
+    SUMP1 = SUMP1 + XF[IT - 1] * GPUN * SP;
+    goto label24;
+label26:
+    IT = NF;
+    IS = IT - 1;                                                        
+    IS2 = 2 * IS;                                                 
+    GUN = ALPHA * 2.0 * double((ME + IS - 1) * IS) / double(ME2 + IS2 - 1);
+    GPUN = -ALPHA * double(IS2) / double(ME2 + IS2 - 1);
+    SP = 0.0;
+    IBMAX = (NFP - IT) / 2 + 1;
+    for (int IB = 1; IB <= IBMAX; IB++) {
+        IN = 2 * IB - 2 + IT;
+        SP += XFP[IN];
+    }
+    SUM1 = SUM1 + XF[IT - 1] * GUN * SP;
+    SUMP1 = SUMP1 + XF[IT - 1] * GPUN * SP;
+    ALPHA = ALPHA * double(ME2 + IS + 1) / double(IS + 1);
+    IT = NF + 1;
+    IS = IT - 1;
+    IS2 = 2 * IS;
+    GUN = ALPHA * 2.0 * double((ME + IS - 1) * IS) / double(ME2 + IS2 - 1);
+    GPUN = -ALPHA * double(IS2) / double(ME2 + IS2 - 1);
+    SP = 0.0;
+    IBMAX = (NFP - IT) / 2 + 1;
+    for (int IB = 1; IB <= IBMAX; IB++) {
+        IN = 2 * IB - 2 + IT;
+        SP += XFP[IN];
+    }
+label24:
+    SUM1 += XF[IT - 1] * GUN * SP;
+    SUMP += SUMP1 + SUMP2;
+    /*
+        Start Iegrating over
+        *
+        B'
+        *
+    */
+    ALPHA = double(IALPHA);
+    if(NF<4) XF[4] = 0.0;
+    if(NF<2) XF[2] = 0.0;                                            
+    if(NFP<2) XFP[2] = 0.0;                                         
+    COEF = double(ME2 + 1);                                               
+    SAM = COEF * XFP[1] * (B(0, 0,ME,ME2) * XF[2] + C(0, 0,ME,ME2) * XF[4]) * ALPHA;                
+    ALPHA = ALPHA * double(ME2 + 1);                                        
+    NMAX = min(NFP, NF - 3);                                             
+    if(NMAX<2) goto label59;      
+    for (int IT = 2; IT <= NMAX; IT++) {
+        IS = IT - 1;
+        MIM = ME + IS;                                                         
+        IM = ME + MIM + 1;                                                      
+        IME = IM + IS;                                                         
+        AI = -2.0 * double(IS * (IM + 1)) / double((IME - 2) * IME * (IME + 2));            
+        BI = 2.0 * double((IM + 1) * (-4 * ME * ME - 4 * ME * (IS + 2) - 2 * IS - 3)) / double((IME + 2) * (IME + 2) * (IME + 4) * IME);
+        CI = 2.0 * double((IM + 2) * (IM + 1)) / double((IME + 6) * (IME + 4) * (IME + 2));
+        COEF = double(IM);
+        SAM = SAM + COEF * XFP[IT] * (AI * XF[IT - 1] + BI * XF[IT + 1] + CI * XF[IT + 3]) * ALPHA;
+        ALPHA = ALPHA * double(IM) / double(IT);
+    }
+label59:
+    if (NF-3 < 0) {
+        goto label64;
+    }
+    else if (NF - 3 == 0) {
+        goto label67;
+    }
+    else {
+        goto label68;
+    }
+label68:
+    if (NMAX == NFP) goto label61;
+    if (NFP - NF+1 < 0) {
+        goto label62;
+    }
+    else if (NFP - NF + 1 == 0) {
+        goto label63;
+    }
+    else {
+        goto label63;
+    }
+label62:
+    IT = NF - 2;                                                          
+    IS = IT - 1;                                                           
+    IS2 = 2 * IS;                                                        
+    COEF = double(ME2 + IS + 1);                                             
+    SAM = SAM + COEF * XFP[IT] * (A(IS, IS2,ME,ME2) * XF[IT - 1] + B(IS, IS2,ME,ME2) * XF[IT + 1]);
+    goto label61;
+label63:
+    IT = NF - 2;                                                           
+    IS = IT - 1;                                                     
+    IS2 = 2 * IS;                                                          
+    COEF = double(ME2 + IS + 1);                                           
+    SAM = SAM + COEF * XFP[IT] * (A(IS, IS2,ME,ME2) * XF[IT - 1] + B(IS, IS2,ME,ME2) * XF[IT + 1]);     
+    ALPHA = ALPHA * double(ME2 + IS + 1) / double(IS + 1);
+label67:
+    IT = NF - 1;
+    IS = IT - 1;
+    IS2 = 2 * IS;
+    COEFF = double(ME2 + IS + 1);
+    SAM = SAM + COEF * XFP[IT] * (A(IS, IS2, ME, ME2) * XF[IT - 1] + B(IS, IS2, ME, ME2) * XF[IT + 1]);
+    ALPHA = ALPHA *double(ME2 + IS + 1) / double(IS + 1);
+label64:
+    if (NFP-NF < 0) {
+        goto label61;
+    }
+    else if (NFP - NF == 0) {
+        goto label65;
+    }
+    else {
+        goto label66;
+    }
+label65:
+    IT = NF;
+    IS = IT - 1;                                                         
+    IS2 = 2 * IS;                                                         
+    COEF = double(ME2 + IS + 1);                                            
+    SAM = SAM + COEF * XFP[IT] * (A(IS, IS2,ME,ME2) * XF[IT - 1]);
+    goto label61;
+label66:
+    IT = NF;                                                             
+    IS = IT - 1;
+    IS2 = 2 * IS;
+    COEF = double(ME2 + IS + 1);
+    SAM = SAM + COEF * XFP[IT] * (A(IS, IS2,ME,ME2) * XF[IT - 1]);
+    ALPHA = ALPHA * double(ME2 + IS + 1) / double(IS + 1);
+    IT = NF + 1;
+    IS = IT - 1;
+    IS2 = 2 * IS;
+    COEF = double(ME2 + IS + 1);
+    SAM = SAM + COEF * XFP[IT] * (A(IS, IS2,ME,ME2) * XF[IT - 1]);
+label61:
+    /*
+        Start Iegrating over
+        *
+                B*
+        *
+    */
 }
+
 void MEDOC(double QU, int N1, int L1, int M1, int N2, int L2, int M2, int NR, vector<double> RR, tuple<vector<vector<double>>, vector<vector<double>>, vector<vector<double>>> GRAVERes1, tuple<vector<vector<double>>, vector<vector<double>>, vector<vector<double>>> GRAVERes2, vector<double> couplings) {
     double AO = 0.5; //subject to change later
     double OMEZUT = 1.0 - 2 * AO;
