@@ -205,7 +205,7 @@ void CTDFRN(int IGO, double& P, double& C, double RZ, double RZDIF, int M, doubl
         RZDIF2 = RZDIF * RZDIF;
         A = C - MM - M;
         DADP = 0;
-        JGO = 4;
+        JGO = 6;
         goto label40;
     case 2:
         J = LSTART;
@@ -467,12 +467,14 @@ void wave_function(int QU, int N, int L, int M, int NR, vector<double>& RR, vect
     // ZA, ZB: nuclear charges;
     // N,L,M: UNITED atom quantum number
 
-    lStart = (L - M != 2 * (L - M) / 2) ? M + 1 : M;
 
     // some subroutines require ZA >= Zb
     double ZA = 1.0, ZB = QU;
     // IGO = 1 , 2, 3 corresponds to Heteronuclear small R, Homo/Heteronuclear larger R for Y(ETA) 
     int IGO = (ZA != ZB) ? 1 : 2;
+    lStart = M;
+    if ((L - M) != 2 * int((L - M) / 2)) lStart = M + 1;
+
     double rStart{ 0.0 };
     int Z = ZA + ZB;
     for (int i = 1; i <= 4; i++) {
@@ -573,6 +575,7 @@ label7:
 label8: 
         //cout <<i<<' '<< P << ' ' << C << " " << RZ << " " << RZDIF << ' ' << endl;
         CTDFRN(IGO, P, C, RZ, RZDIF, M, FCHAIN, lStart, *ACCIN, FCUT, F, DFDC, DFDP,  NCVIN);
+
         CTDFRN(4, P, C, RZ, RZDIF, M, GCHAIN, lStart , *ACCOUT, GCUT, G, DGDC, DGDP, NCVOUT);
         //BUild an array of the convergents for transfer to WFNC
         ICVGY[i] = NCVIN;
@@ -733,17 +736,6 @@ label31:
 }
 
 
-
-
-
-
-
-
-
-
-
-
-
 void BANDET(int N, int M1, int M2, int IE, double LAM, double MAC, vector<double>& A, double& D1, int& ID2, vector<double>& M, vector<double>& INT, bool &FAIL) {
     /* PROGRAM BANDET1 (Handbook for automatic computation Vol II, I/6)
     * Calculates the determinant of a Band Matrix and put the matrix in a form suitable for use by BANSOL
@@ -870,14 +862,12 @@ labelend:
 }
 
 
-
-
 void DGE(int N, double AG, double PE, vector<double> &BG, CommonBlockINIT &INIT, CommonBlockMAT &MAT) {
     /*************************************************************************
     Calculates the tridiagonal matrix G and solves the system of linear equations
     which gives the coefficient of the expansion of the outer wavefunction
     *************************************************************************/
-    double AA, DFLOAT, D1{0}, HI;
+    double AA, D1{0}, HI;
     const double ZERO = 0.0;
     const double MACH = 2.3e-16; // MACH is machine dependent, can make it smaller in the future
     bool FAIL;
@@ -1048,7 +1038,6 @@ labelend:
     return;
 }
 
-
 void DFSYM(int N,double AF,double PE, vector<double> &BF, int NPAR, CommonBlockINIT &INIT, CommonBlockTRAP &TRAP, CommonBlockMAT &MAT) {
     //Calcualtes the traditional Matrix F and solves the system of linear eqns that gives the
     //coeff of the inner wave function
@@ -1150,7 +1139,7 @@ labelend:
 
 
 tuple<vector<vector<double>>, vector<vector<double>>, vector<vector<double>>> GRAVE(const double QU, int N, int L, int ME, int NR, vector<double> RR, vector<double> GraveP, vector<double> GraveC) {
-    double AG, DABS, DFLOAT, XF1;
+    double AG, DABS, XF1;
     int NG, NF, MYINDEX;
     int JWRIT, NGMAX, NFMAX, NGIN, NFIN, NSTATE, XGMAX, XFMAX, NFPMAX;
     bool NGTEST, NFTEST;
@@ -1341,12 +1330,13 @@ struct Gauss
 
 };
 
-void NORDIF(int ME, double PE, double SIGMA, int NG, vector<double>XG, int NF, vector<double>XF, double& FNOR, double R) {
+void NORDIF(int ME, double PE, double SIGMA, int NG, vector<double>&XG, int NF, vector<double>&XF, double& FNOR, double R) {
     //calcualte the norm of a given wavefunciton
     //in GRAVE, the last term in semi-analytical expansion is set equal to 1. Here the first non-zero term is equal to 1
     //The norm is calculated for this new form of expansion.
     double ALAM, ALAMXI, ALAM1, ALAM2, ALPHA, BETA, DEXP, DLOG,  FONC, PP,SAM, SG, SIM, SPG, SUM, TROC, TRUC, XF2, XN, Y;
     double IS, IM, IME, NFP;
+
     Gauss Gauss;
     int NXI = Gauss.NXI;
     vector<double> XI = Gauss.XI;
@@ -1426,10 +1416,11 @@ label21:
     return;
 }
 
-void ROTDIS(double &CRAD, double &GAMRAD, Gauss Gaussian, vector<double> XFP, vector<double> XGP,int NFP, int NGP, vector<double> XF, vector<double> XG, int NF, int NG, double R, double PE, double PEP, double SIGMA, double SIGMAP, double DELTA, int L, int ME, double OMEZUT) {
+void ROTDIS(double& CROT, double& GAMROT, Gauss Gaussian, vector<double> XFP, vector<double> XGP, int NFP, int NGP, vector<double> XF, vector<double> XG, int NF, int NG, double R, double PE, double PEP, double SIGMA, double SIGMAP, double DELTA, int L, int ME, double OMEZUT) {
     double  AI, ALAM, ALAMXI, ALAM1, ALAM2, ALPHA,  BI,  CI, COEF, COEFF, DEXP, DLOG,  DY, FISC, FONC, GDEU,GPDEU, GPUN, 
-        GTROI, GUN, SAM, SG, SIM, SJM, SKM, SP, SPG, SPI, SPJ, SPK, SPN, SUM, SUMP, SUMP1, SUMP2, SUM1, SUM2,TRIC, TRUC,  Y, YP, SPK2;
-    int IBMAX, IN,NMAX,IS,IS2,MIM,IM,IME,IT;
+        GTROI, GUN, SAM, SG, SIM, SJM, SKM, SP, SPG, SPI, SPJ, SPK, SPN, SUMP1, SUMP2, SUM1, SUM2,TRIC, TRUC,  Y, YP, SPK2;
+    double SUM{ 0 }, SUMP{ 0 };
+    int IBMAX, IN,NMAX,IS,IS2,MIM,IM,IME,IT,NPMAX,NN;
     auto A = [](int I, int I2, int ME, int ME2) -> double {
         return (-double((I + 1) * (ME + I) * (ME2 + I + 1)) / double(ME2 + I2 + 3) + double((ME2 + I) * (ME + I + 1) * I) / double(ME2 + I2 - 1)) / double(ME2 + I2 + 1);
         };
@@ -1536,9 +1527,11 @@ label26:
         IN = 2 * IB - 2 + IT;
         SP += XFP[IN];
     }
-label24:
     SUM1 += XF[IT - 1] * GUN * SP;
     SUMP += SUMP1 + SUMP2;
+label24:
+    SUM = SUM1 + SUM2;
+    SUMP = SUMP1 + SUMP2;
     /*
         Start Iegrating over
         *
@@ -1550,7 +1543,7 @@ label24:
     if(NF<2) XF[2] = 0.0;                                            
     if(NFP<2) XFP[2] = 0.0;                                         
     COEF = double(ME2 + 1);                                               
-    SAM = COEF * XFP[1] * (B(0, 0,ME,ME2) * XF[2] + C(0, 0,ME,ME2) * XF[4]) * ALPHA;                
+    SAM = COEF * XFP[1] * (B(0, 0,ME,ME2) * XF[2] + C(0, 0,ME,ME2) * XF[4]) * ALPHA; 
     ALPHA = ALPHA * double(ME2 + 1);                                        
     NMAX = min(NFP, NF - 3);                                             
     if(NMAX<2) goto label59;      
@@ -1608,6 +1601,7 @@ label67:
     COEFF = double(ME2 + IS + 1);
     SAM = SAM + COEF * XFP[IT] * (A(IS, IS2, ME, ME2) * XF[IT - 1] + B(IS, IS2, ME, ME2) * XF[IT + 1]);
     ALPHA = ALPHA *double(ME2 + IS + 1) / double(IS + 1);
+    
 label64:
     if (NFP-NF < 0) {
         goto label61;
@@ -1624,6 +1618,7 @@ label65:
     IS2 = 2 * IS;                                                         
     COEF = double(ME2 + IS + 1);                                            
     SAM = SAM + COEF * XFP[IT] * (A(IS, IS2,ME,ME2) * XF[IT - 1]);
+    
     goto label61;
 label66:
     IT = NF;                                                             
@@ -1644,6 +1639,222 @@ label61:
                 B*
         *
     */
+    SIM = 0.0;                                                         
+    ALPHA = double(IALPHA * (ME2 + 1) * (ME2 + 2));                            
+    NMAX = min(NFP, NF - 2);
+    if (NMAX < 1) { goto label12; }
+    for (int IT = 1; IT <= NMAX; IT++) {
+        IS = IT - 1;
+        IME = ME2 + IS + IS + 1;
+        COEFF = 2.0 / double(IME + 2);
+        SIM = SIM + COEFF * XFP[IT] * ALPHA * (XF[IT + 2] / double(IME + 4) - XF[IT] / double(IME));
+        ALPHA = ALPHA * double(ME2 + IS + 3) / double(IT);
+    }
+label12:
+    if (NFP - NF +1 < 0) {
+        goto label231;
+    }
+    else if (NFP - NF + 1 == 0) {
+        goto label232;
+    }
+    else {
+        goto label233;
+    }
+label232:
+    IT = NF - 1;
+    IS = IT - 1;
+    IS2 = 2 * IS;
+    COEFF = 2.0 / double(ME2 + IS2 + 3);
+    SIM = SIM - COEFF * XFP[IT] * ALPHA * XF[IT] / double(ME2 + IS2 + 1);
+    goto label231;
+label233:
+    IT = NF - 1;                                                        
+    IS = IT - 1;                                                           
+    IS2 = 2 * IS;
+    COEFF = 2.0 / double(ME2 + IS2 + 3);
+    SIM = SIM - COEFF * XFP[IT] * ALPHA * XF[IT] / double(ME2 + IS2 + 1);
+    ALPHA = ALPHA * double(ME2 + IS + 3) / double(IS + 1);
+    IT = NF;
+    IS = IT - 1;
+    IS2 = 2 * IS;
+    COEFF = 2.0 / double(ME2 + IS2 + 3);
+    SIM = SIM - COEFF * XFP[IT] * ALPHA * XF[IT] / double(ME2 + IS2 + 1);
+
+label231:
+    //start integratoin over B''*
+    SJM = 0.0;
+    ALPHA = double(ALPHA);
+    NMAX = min(NFP, NF);
+    for (IT = 1; IT <= NMAX; IT++) {
+        IBMAX = (NFP - IT) / 2 + 1;
+        SP = 0;
+        for (int IB = 1; IB <= IBMAX; IB++) {
+            IN = 2 * IB - 2 + IT;
+            SP = SP + XFP[IN];
+        }
+        SP = SP + XFP[IN];
+        SJM = SJM - SP * 2.0 * ALPHA * XF[IT];
+        ALPHA = ALPHA * double(ME2 + IS + 1) / double(IS + 1);
+    }
+    //integration over B'*
+    SKM = 0.0;
+    ALPHA = double(IALPHA);
+    if (NF < 4) { XF[4] = 0.0; }
+    if (NF < 3) { XF[3] = 0.0; }
+    for (IT = 1; IT <= 2; IT++) {
+        IS = IT - 1;
+        IS2 = 2 * IS;
+        COEFF = -2.0 * ALPHA;
+        GUN = (double((ME2 + IS) * (ME + IS + 1) * IS) / double(ME2 + IS2 - 1)
+            - double((ME + IS) * (ME2 + IS + 1) * (IS + 1)) / double(ME2 + IS2 + 3)) / double(ME2 + IS2 + 1);
+        GDEU = double((ME2 + IS + 2) * (ME + IS + 3) * (ME2 + IS + 1)) / double((ME2 + IS2 + 3) * (ME2 + IS2 + 5));
+        SP = 0.0;
+        IBMAX = (NFP - IT) / 2 + 1;
+        for (int IB = 1; IB <= IBMAX; IB++) {
+            IN = 2 * IB - 2 + IT;
+            SP += XFP[IN];
+        }
+        SP = 0;
+        IBMAX = (NFP - IT) / 2 + 1;
+        for (int IB = 1; IB <= IBMAX; IB++) {
+            IN = 2 * IB - 2 + IT;
+            SP = SP + XFP[IN];
+        }
+        SKM += COEFF * SP * (XF[IT] * GUN + XF[IT + 2] * GDEU);
+        ALPHA = ALPHA * double(ME2 + IS + 1) / double(IS + 1);
+    }
+    NMAX = min(NFP, NF - 2);
+    if (NMAX < 3) { goto label125; }
+    for (int IT = 3; IT <= NMAX; IT++) {
+        IS = IT - 1;
+        COEFF = -2.0 * ALPHA;
+        MIM = IS + ME;
+        IM = MIM + ME + 1;
+        IME = IM + IS;
+        GUN = (double((IM - 1) * (MIM + 1) * IS) / double(IME - 2)
+            - double(MIM * IM * IT) / double(IME + 2)) / double(IME);
+        GDEU = double((IM + 1) * (MIM + 3) * IM) / double((IME + 2) * (IME + 4));
+        GTROI = -double((MIM - 2) * (IS - 1) * IS) / double((IME - 2) * (IME - 4));
+        SP = 0;
+        IBMAX = (NFP - IT) / 2 + 1;
+        for (int IB = 1; IB <= IBMAX; IB++) {
+            IN = 2 * IB - 2 + IT;
+            SP = SP + XFP[IN];
+        }
+        SKM = SKM + COEFF * SP * (XF[IT] * GUN + XF[IT + 2] * GDEU + XF[IT - 2] * GTROI);
+        ALPHA = ALPHA * double(IM) / double(IT);
+    }
+label125:
+    if (NMAX == NFP) goto label130;
+    NMAX += 1;
+    if (NMAX < 3) { NMAX = 3; }
+    NPMAX = min(NFP, NF);
+    if (NPMAX < NMAX) { goto label132; }
+    for (int IT = NMAX; IT <= NPMAX; IT++) {
+        IS = IT - 1;
+        IS2 = 2 * IS;
+        COEFF = -2.0 * ALPHA;
+        GUN = (double((ME2 + IS) * (ME + IS + 1) * IS) / double(ME2 + IS2 - 1)
+            - double((ME + IS) * (ME2 + IS + 1) * (IS + 1)) / double(ME2 + IS2 + 3)) / double(ME2
+                + IS2 + 1);
+        GTROI = -double((ME + IS - 2) * (IS - 1) * IS) / double((ME2 + IS2 - 1) * (ME2 + IS2 - 3));
+        SP = 0.0;
+        IBMAX = (NFP - IT) / 2 + 1;
+        for (int IB = 1; IB <= IBMAX; IB++) {
+            IN = 2 * IB - 2 + IT;
+            SP += XFP[IN];
+        }
+        SKM += COEFF * SP * (XF[IT] * GUN + XF[IT - 2] * GTROI);
+        ALPHA *= double(ME2 + IS + 1) / double(IS + 1);
+    }
+label132:
+    if (NPMAX == NFP) { goto label130; }
+    NMAX = min(NFP, NF + 2);
+    NPMAX = NPMAX + 1;
+    if (NMAX < NPMAX) { goto label130; }
+    for (int IT = NPMAX; IT <= NMAX; IT++) {
+        IS = IT - 1;
+        IS2 = 2 * IS;
+        COEFF = -2 * ALPHA;
+        GTROI = -double((ME + IS - 2) * (IS - 1) * IS) / double((ME2 + IS2 - 1) * (ME2 + IS2 - 3));
+        SP = 0;
+        IBMAX = (NFP - IT) / 2 + 1;
+        for (int IB = 1; IB <= IBMAX; IB++) {
+            IN = 2 * IB - 2 + IT;
+            SP = SP + XFP[IN];
+        }
+        SKM = SKM + COEFF * SP * XF[IT - 2] * GTROI;
+        ALPHA = ALPHA * double(ME2 + IS + 1) / double(IS + 1);
+    }
+label130:
+    //start integration LAMBDA
+    double SIGPE = PE + PEP;
+    SG = 0.0;                                                           
+    SPG = 0.0;
+    SPI = 0.0;
+    SPJ = 0.0;
+    SPK = 0.0;
+    SPN = 0.0;
+    SPK2 = 0.0;
+    for (int N = 1; N <= Gaussian.NXI; N++) {
+        ALAM = Gaussian.XI[N] / SIGPE + 1;
+        ALAM1 = ALAM - 1.0;
+        ALAM2 = ALAM + 1.0;
+        ALAMXI = ALAM1 / ALAM2;
+        FONC = exp(-SIGPE * ALAM + (SIGMA + SIGMAP) * log(ALAM2));
+        TRUC = ALAM1 * ALAM2;
+        TRIC = pow(TRUC,ME);
+        TRUC = TRIC * TRUC;
+        FISC = FONC * TRIC * Gaussian.OMEGA[N];
+        FONC = FONC * TRUC * Gaussian.OMEGA[N];
+        YP = XGP[NGP];
+        for (int JN = 2; JN <= NGP; JN++) {
+            NN = NGP - JN + 1;
+            YP = YP * ALAMXI + XGP[NN];
+        }
+        Y = XG[NG];
+        DY = 0.0;
+        for (int JN = 2; JN <= NG; JN++) {
+            NN = NG - JN + 1;
+            Y = Y * ALAMXI + XG[NN];
+            DY = DY * ALAMXI + XG[NN + 1] * double(NN);
+        }
+        DY = 2 * DY;
+        DY = DY + Y * (ME * ALAM / ALAMXI + ALAM2 * (SIGMA - PE * ALAM2));
+        DY = DY / (ALAM2 * ALAM2);
+        FISC = FISC * Y * YP;
+        SG = SG + FONC * DY * YP;
+        SPG = SPG + FONC * Y * YP * ALAM;
+        SPI = SPI + FISC * ALAM;
+        SPJ = SPJ + FONC * DY * YP * ALAM;
+        SPK = SPK + FONC * Y * YP;
+        SPK2 = SPK2 + FONC * Y * YP * ALAM * ALAM;
+        SPN = SPN + FISC;
+    }
+    SG = SG / SIGPE;
+    SPG = SPG / SIGPE;
+    SPI = SPI / SIGPE;
+    SPJ = SPJ / SIGPE;
+    SPK = SPK / SIGPE;
+    SPN = SPN / SIGPE;
+    SPK2 = SPK2 / SIGPE;
+
+    /*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
+    /*!!   NEED SPK and SPK2 values for ETF correction calculation     !!!!*/
+    /*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
+    /*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
+
+    CROT = +R * R * R * (SG * SAM - SPG * SUM + ME * (SPI * SAM + SUMP * SPG)) / 16;
+    
+    GAMROT = +R * R * R * (SPJ * SIM - SPK * SKM + ME * (SPK * SJM + SIM * SPN)) / 16.0;
+    
+    CROT = CROT + OMEZUT * GAMROT;
+    cout << CROT << " " << GAMROT << endl;
+    if (ME == 0) {
+        CROT = CROT * sqrt(2.0);
+        GAMROT = GAMROT * sqrt(2.0);
+    }
+    return;
 }
 
 void MEDOC(double QU, int N1, int L1, int M1, int N2, int L2, int M2, int NR, vector<double> RR, tuple<vector<vector<double>>, vector<vector<double>>, vector<vector<double>>> GRAVERes1, tuple<vector<vector<double>>, vector<vector<double>>, vector<vector<double>>> GRAVERes2, vector<double> couplings) {
@@ -1735,9 +1946,9 @@ void MEDOC(double QU, int N1, int L1, int M1, int N2, int L2, int M2, int NR, ve
             //rotational coupling calculation
             NORDIF(ME, PE, SIGMA, NG, XG, NF, XF, FNOR, R);
             NORDIF(MEP, PEP, SIGMAP, NGP, XGP, NFP, XFP, FNORP, R);
-            cout << FNOR * FNORP<<endl;
+            
             ROTDIS(CROT, GAMROT, Gaussian, XFP,XGP,NFP,NGP, XF,XG,NF,NG, R,PE,PEP,SIGMA,SIGMAP,DELTA,L,ME,OMEZUT);
-
+            cout << FNOR << " " << FNORP << " " << CROT << " " << GAMROT << endl;
 
         }
         else {
@@ -1746,15 +1957,8 @@ void MEDOC(double QU, int N1, int L1, int M1, int N2, int L2, int M2, int NR, ve
 
 
     }
-
-
-
-
-
     return;
 }
-
-
 
 int main() {
     vector<double> RR(999);
@@ -1765,7 +1969,7 @@ int main() {
     //state1 declaration
     int N1 = 2;
     int L1 = 1;
-    int M1 = 1;
+    int M1 = 0;
     vector <double> PP1(999), CSEP1(999);
     vector <double> GraveP1(999), GraveC1(999);
     wave_function(QU,N1, L1, M1, NR,RR, PP1, CSEP1,GraveP1,GraveC1);
@@ -1780,9 +1984,9 @@ int main() {
     
 
     //state2
-    int N2 = 1;
-    int L2 = 0;
-    int M2 = 0;
+    int N2 = 2;
+    int L2 = 1;
+    int M2 = 1;
     vector<double> RR2(999);
     vector <double> PP2(999), CSEP2(999);
     vector <double> GraveP2(999), GraveC2(999);
