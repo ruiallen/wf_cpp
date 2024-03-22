@@ -1422,15 +1422,15 @@ void ROTDIS(double& CROT, double& GAMROT, Gauss Gaussian, vector<double> XFP, ve
     double SUM{ 0 }, SUMP{ 0 };
     int IBMAX, IN,NMAX,IS,IS2,MIM,IM,IME,IT,NPMAX,NN;
     auto A = [](int I, int I2, int ME, int ME2) -> double {
-        return (-double((I + 1) * (ME + I) * (ME2 + I + 1)) / double(ME2 + I2 + 3) + double((ME2 + I) * (ME + I + 1) * I) / double(ME2 + I2 - 1)) / double(ME2 + I2 + 1);
+        return -2.0*double(I*(ME2+I+2.))/double((ME2+I2-1.)*(ME2+I2+1.)*(ME2+I2+3.));
         };
 
     auto B = [](int I, int I2, int ME, int ME2) -> double {
-        return double((ME + I + 3) * (ME2 + I + 2) * (ME2 + I + 1)) / double((ME2 + I2 + 5) * (ME2 + I2 + 3));
+        return 2.0*double((ME2+I+2)*(-4*ME*ME-4*ME*(I+2)-2*I-3))/double((ME2+I2+3)*(ME2+I2+3)*(ME2+I2+5)*(ME2+I2+1));
         };
 
     auto C = [](int I, int I2, int ME, int ME2) -> double {
-        return -double((I - 1) * I * (ME + I - 2)) / double((ME2 + I2 - 3) * (ME2 + I2 - 1));
+        return 2*double((ME2+I+3)*(ME2+I+2))/double((ME2+I2+7)*(ME2+I2+3)*(ME2+I2+5));
         };
     int ME2 = ME * 2;
     int IALPHA = 1;
@@ -1591,7 +1591,8 @@ label63:
     IT = NF - 2;                                                           
     IS = IT - 1;                                                     
     IS2 = 2 * IS;                                                          
-    COEF = double(ME2 + IS + 1);                                           
+    COEF = double(ME2 + IS + 1);  
+    //cout << A(IS, IS2, ME, ME2)<<" B "<<B(IS, IS2, ME, ME2) << endl;
     SAM = SAM + COEF * XFP[IT] * (A(IS, IS2,ME,ME2) * XF[IT - 1] + B(IS, IS2,ME,ME2) * XF[IT + 1]);     
     ALPHA = ALPHA * double(ME2 + IS + 1) / double(IS + 1);
 label67:
@@ -1849,7 +1850,7 @@ label130:
     GAMROT = +R * R * R * (SPJ * SIM - SPK * SKM + ME * (SPK * SJM + SIM * SPN)) / 16.0;
     
     CROT = CROT + OMEZUT * GAMROT;
-    cout << CROT << " " << GAMROT << endl;
+    //cout << CROT << " " << GAMROT << endl;
     if (ME == 0) {
         CROT = CROT * sqrt(2.0);
         GAMROT = GAMROT * sqrt(2.0);
@@ -1948,7 +1949,7 @@ void MEDOC(double QU, int N1, int L1, int M1, int N2, int L2, int M2, int NR, ve
             NORDIF(MEP, PEP, SIGMAP, NGP, XGP, NFP, XFP, FNORP, R);
             
             ROTDIS(CROT, GAMROT, Gaussian, XFP,XGP,NFP,NGP, XF,XG,NF,NG, R,PE,PEP,SIGMA,SIGMAP,DELTA,L,ME,OMEZUT);
-            cout << FNOR << " " << FNORP << " " << CROT << " " << GAMROT << endl;
+            //cout << FNOR << " " << FNORP << " " << CROT << " " << GAMROT << endl;
 
         }
         else {
