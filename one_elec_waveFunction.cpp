@@ -618,12 +618,19 @@ label9:
     //todo: print to file
     //suspicious, PP[1] is set to an arbitray number for Rstart = 0;
     PP[1] = 1e50;
+    vector<double> POT;
+    POT.push_back(1e50); //infinity
+    int ZAB = ZA * ZB;
+    for (int i = 1; i < NR; i++) {
+        POT.push_back(PP[i] + ZAB / RR[i]);
+    }
     string potname1;
     potname1 = "pot" + to_string(N) + to_string(L) + to_string(M);
+    //ignore potential at R = 0
     std::ofstream outFilePot1(potname1);
     if (outFilePot1.is_open()) {
-        for (int i = 1; i < NR; ++i) {
-            outFilePot1 << RR[i] << "\t" << PP[i] << endl;
+        for (int i = ISTART; i < NR; ++i) {
+            outFilePot1 << RR[i] << "\t" << POT[i] << endl;
         }
 
         outFilePot1.close(); // Close the file
