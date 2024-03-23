@@ -803,7 +803,7 @@ label41:
         J = K + 1;
     label52:
         if (J > L) { goto label51; }
-        if (abs(AA[J-1][0] <= abs(X))) { goto label53; }
+        if (abs(AA[J-1][0]) <= abs(X)) { goto label53; }
         X = AA[J-1][0];
         I = J;
     label53:
