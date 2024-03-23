@@ -421,7 +421,7 @@ label5:
 
 //to do pack main() into function wf
 
-void wave_function(int QU, int N, int L, int M, int NR, vector<double>& RR, vector<double>& PP, vector<double>& CSEP, vector<double>& GraveP, vector<double>& GraveC)
+void wave_function(int QU, double RINCR, int N, int L, int M, int NR, vector<double>& RR, vector<double>& PP, vector<double>& CSEP, vector<double>& GraveP, vector<double>& GraveC)
 {
     //define constants, As of now not sure their functionality
     vector<int> IACDFT{ 0,11,11,10,10 };
@@ -463,8 +463,8 @@ void wave_function(int QU, int N, int L, int M, int NR, vector<double>& RR, vect
     int KS{ 0 }, ICEN{ 0 };
     int NOPTS{ 1 };
     int IRISK = 0;
-    int nPts = 100;
-    double RINCR = 0.3;
+    int nPts = NR;
+
     vector <double> ICVGY(999), ICVGX(999);
     // ZA, ZB: nuclear charges;
     // N,L,M: UNITED atom quantum number
@@ -1860,8 +1860,8 @@ label130:
     return;
 }
 
-void MEDOC(double QU, int N1, int L1, int M1, int N2, int L2, int M2, int NR, vector<double> RR, tuple<vector<vector<double>>, vector<vector<double>>, vector<vector<double>>> GRAVERes1, tuple<vector<vector<double>>, vector<vector<double>>, vector<vector<double>>> GRAVERes2, vector<double> &couplings,string&name) {
-    double AO = 0.5; //subject to change later
+void MEDOC(double QU, double AO, int N1, int L1, int M1, int N2, int L2, int M2, int NR, vector<double> RR, tuple<vector<vector<double>>, vector<vector<double>>, vector<vector<double>>> GRAVERes1, tuple<vector<vector<double>>, vector<vector<double>>, vector<vector<double>>> GRAVERes2, vector<double> &couplings,string&name) {
+    
     double OMEZUT = 1.0 - 2 * AO;
     int JPERF;
     int NN, L, ME, NNP, LP, MEP;//state quantum number
@@ -1970,17 +1970,27 @@ void MEDOC(double QU, int N1, int L1, int M1, int N2, int L2, int M2, int NR, ve
 
 int main() {
     vector<double> RR(999);
-    
-    const int NR = 100;
-    const int QU = 1; //make sure only work on one type of system
+    int NR;
+    double RINCR;
+    float QU ,AO;
+    int N1, L1,M1;
+    int N2, L2, M2;
 
+    std::ifstream file("input.txt");
+    if (!file) {
+        std::cerr << "Unable to open file" << std::endl;
+        return 1;
+    }
+    file >> NR >> RINCR;
+    file >> QU >> AO;
+    file >> N1 >> L1 >> M1;
+    file >> N2 >> L2 >> M2;
+    file.close();
     //state1 declaration
-    int N1 = 2;
-    int L1 = 1;
-    int M1 = 0;
+    
     vector <double> PP1(999), CSEP1(999);
     vector <double> GraveP1(999), GraveC1(999);
-    wave_function(QU,N1, L1, M1, NR,RR, PP1, CSEP1,GraveP1,GraveC1);
+    wave_function(QU,RINCR,N1, L1, M1, NR,RR, PP1, CSEP1,GraveP1,GraveC1);
     //post-processing
     RR.erase(RR.begin());
     PP1.erase(PP1.begin());
@@ -1992,13 +2002,10 @@ int main() {
     
 
     //state2
-    int N2 = 2;
-    int L2 = 1;
-    int M2 = 1;
     vector<double> RR2(999);
     vector <double> PP2(999), CSEP2(999);
     vector <double> GraveP2(999), GraveC2(999);
-    wave_function(QU, N2, L2, M2, NR,RR2, PP2, CSEP2, GraveP2, GraveC2);
+    wave_function(QU,RINCR, N2, L2, M2, NR,RR2, PP2, CSEP2, GraveP2, GraveC2);
     tuple<vector<vector<double>>, vector<vector<double>>, vector<vector<double>>> GRAVERes2;
     RR2.erase(RR2.begin());
     PP2.erase(PP2.begin());
@@ -2009,11 +2016,12 @@ int main() {
     
     vector<double> couplings{};
     string name;
-    MEDOC(QU, N1, L1, M1, N2, L2, M2, NR, RR, GRAVERes1, GRAVERes2, couplings,name);
+    MEDOC(QU,AO, N1, L1, M1, N2, L2, M2, NR, RR, GRAVERes1, GRAVERes2, couplings,name);
     
     std::ofstream outFile(name);
     if (outFile.is_open()) {
         for (int i = 1; i < NR; ++i) {
+        cout << RR[i] << "\t" << couplings[i]<<endl;
         outFile << RR[i] <<"\t" <<couplings[i]<<endl; // Writes each element on a new line
         }
 

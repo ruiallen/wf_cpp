@@ -1,0 +1,11 @@
+300 0.1
+1 0.5
+2 1 0
+2 1 1
+
+##############################
+input list:
+NR, RINCR: number of data points and Rstep
+QU, AO: Nuclear Charge Ratio and the relative distance to the nucleaus 1 (0<AO<1)
+N1, L1, M1: State1's quantum number.
+N2, L2, M2: State2's quantum number.
