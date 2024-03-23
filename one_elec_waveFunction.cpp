@@ -6,6 +6,7 @@
 #include<cmath>
 #include<tuple>
 #include <fstream>
+#include <string>
 using namespace std;
 
 void CORR(double ZA, double ZB, double N, int L, int M, double &NS, int &K, int &ICEN) {
@@ -1859,7 +1860,7 @@ label130:
     return;
 }
 
-void MEDOC(double QU, int N1, int L1, int M1, int N2, int L2, int M2, int NR, vector<double> RR, tuple<vector<vector<double>>, vector<vector<double>>, vector<vector<double>>> GRAVERes1, tuple<vector<vector<double>>, vector<vector<double>>, vector<vector<double>>> GRAVERes2, vector<double> &couplings) {
+void MEDOC(double QU, int N1, int L1, int M1, int N2, int L2, int M2, int NR, vector<double> RR, tuple<vector<vector<double>>, vector<vector<double>>, vector<vector<double>>> GRAVERes1, tuple<vector<vector<double>>, vector<vector<double>>, vector<vector<double>>> GRAVERes2, vector<double> &couplings,string&name) {
     double AO = 0.5; //subject to change later
     double OMEZUT = 1.0 - 2 * AO;
     int JPERF;
@@ -1939,9 +1940,11 @@ void MEDOC(double QU, int N1, int L1, int M1, int N2, int L2, int M2, int NR, ve
             XGP = vector<double>(tempXGP.begin(), tempXGP.begin() + NGP+1);
             XFP = vector<double>(tempXFP.begin(), tempXFP.begin() + NFP+1);
         }
+        
         else {
             cout << "Error, check if state quantum numbers are valid " << endl;
         }
+        
         //data reads in complete, keep looping over internuclear distance.
         SIGMA = R * (1.0 + QU) / (2.0 * PE) - 1.0 - double(ME);
         SIGMAP = RP * (1.0 + QU) / (2.0 * PEP) - 1.0 - double(MEP);
@@ -1959,8 +1962,9 @@ void MEDOC(double QU, int N1, int L1, int M1, int N2, int L2, int M2, int NR, ve
             //radial coupling calculation
         }
 
-
+    
     }
+    name = "coupling"+to_string(NN) + to_string(L) + to_string(ME) + "-" + to_string(NNP) + to_string(LP) + to_string(MEP);
     return;
 }
 
@@ -2004,14 +2008,12 @@ int main() {
     GRAVERes2 = GRAVE(QU, N2, L2, M2, NR, RR2, GraveP2, GraveC2);
     
     vector<double> couplings{};
-    MEDOC(QU, N1, L1, M1, N2, L2, M2, NR, RR, GRAVERes1, GRAVERes2, couplings);
+    string name;
+    MEDOC(QU, N1, L1, M1, N2, L2, M2, NR, RR, GRAVERes1, GRAVERes2, couplings,name);
     
-    std::ofstream outFile("output.txt");
+    std::ofstream outFile(name);
     if (outFile.is_open()) {
-        
-       
         for (int i = 1; i < NR; ++i) {
-        cout<< RR[i] << "\t" << couplings[i] << endl;
         outFile << RR[i] <<"\t" <<couplings[i]<<endl; // Writes each element on a new line
         }
 
