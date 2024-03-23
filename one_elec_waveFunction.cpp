@@ -5,6 +5,7 @@
 #include <vector>
 #include<cmath>
 #include<tuple>
+#include <fstream>
 using namespace std;
 
 void CORR(double ZA, double ZB, double N, int L, int M, double &NS, int &K, int &ICEN) {
@@ -1858,7 +1859,7 @@ label130:
     return;
 }
 
-void MEDOC(double QU, int N1, int L1, int M1, int N2, int L2, int M2, int NR, vector<double> RR, tuple<vector<vector<double>>, vector<vector<double>>, vector<vector<double>>> GRAVERes1, tuple<vector<vector<double>>, vector<vector<double>>, vector<vector<double>>> GRAVERes2, vector<double> couplings) {
+void MEDOC(double QU, int N1, int L1, int M1, int N2, int L2, int M2, int NR, vector<double> RR, tuple<vector<vector<double>>, vector<vector<double>>, vector<vector<double>>> GRAVERes1, tuple<vector<vector<double>>, vector<vector<double>>, vector<vector<double>>> GRAVERes2, vector<double> &couplings) {
     double AO = 0.5; //subject to change later
     double OMEZUT = 1.0 - 2 * AO;
     int JPERF;
@@ -1876,6 +1877,7 @@ void MEDOC(double QU, int N1, int L1, int M1, int N2, int L2, int M2, int NR, ve
 
     //gaussian weights
     Gauss Gaussian;
+    couplings.push_back(0.0);//place holder
     //loop through internuclear distances
     for (int JN = 1; JN < NR; JN++) {
         R = RR[JN];
@@ -1950,7 +1952,8 @@ void MEDOC(double QU, int N1, int L1, int M1, int N2, int L2, int M2, int NR, ve
             
             ROTDIS(CROT, GAMROT, Gaussian, XFP,XGP,NFP,NGP, XF,XG,NF,NG, R,PE,PEP,SIGMA,SIGMAP,DELTA,L,ME,OMEZUT);
             //cout << FNOR << " " << FNORP << " " << CROT << " " << GAMROT << endl;
-
+            CROT = CROT * FNOR * FNORP;
+            couplings.push_back( CROT);
         }
         else {
             //radial coupling calculation
@@ -2000,9 +2003,22 @@ int main() {
     GraveC2.erase(GraveC2.begin());
     GRAVERes2 = GRAVE(QU, N2, L2, M2, NR, RR2, GraveP2, GraveC2);
     
-    vector<double> couplings;
+    vector<double> couplings{};
     MEDOC(QU, N1, L1, M1, N2, L2, M2, NR, RR, GRAVERes1, GRAVERes2, couplings);
+    
+    std::ofstream outFile("output.txt");
+    if (outFile.is_open()) {
+        
+       
+        for (int i = 1; i < NR; ++i) {
+        cout<< RR[i] << "\t" << couplings[i] << endl;
+        outFile << RR[i] <<"\t" <<couplings[i]<<endl; // Writes each element on a new line
+        }
 
-
+        outFile.close(); // Close the file
+    }
+    else {
+        std::cerr << "Unable to open file";
+    }
     return 0;
 }
