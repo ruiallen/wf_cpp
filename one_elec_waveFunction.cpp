@@ -618,6 +618,19 @@ label9:
     //todo: print to file
     //suspicious, PP[1] is set to an arbitray number for Rstart = 0;
     PP[1] = 1e50;
+    string potname1;
+    potname1 = "pot" + to_string(N) + to_string(L) + to_string(M);
+    std::ofstream outFilePot1(potname1);
+    if (outFilePot1.is_open()) {
+        for (int i = 1; i < NR; ++i) {
+            outFilePot1 << RR[i] << "\t" << PP[i] << endl;
+        }
+
+        outFilePot1.close(); // Close the file
+    }
+    else {
+        std::cerr << "Unable to open file";
+    }
 }
 
 
@@ -2000,19 +2013,7 @@ int main() {
     tuple<vector<vector<double>>, vector<vector<double>>, vector<vector<double>>> GRAVERes1;
     GRAVERes1 = GRAVE(QU, N1, L1, M1, NR, RR, GraveP1, GraveC1);
 
-    string potname1;
-    potname1 = "pot" + to_string(N1) + to_string(L1) + to_string(M1);
-    std::ofstream outFilePot1(potname1);
-    if (outFilePot1.is_open()) {
-        for (int i = 1; i < NR; ++i) {
-            outFilePot1 << RR[i] << "\t" << GraveP1[i] << endl;
-        }
-
-        outFilePot1.close(); // Close the file
-    }
-    else {
-        std::cerr << "Unable to open file";
-    }
+    
 
     //state2
     vector<double> RR2(999);
@@ -2026,23 +2027,6 @@ int main() {
     GraveP2.erase(GraveP2.begin());
     GraveC2.erase(GraveC2.begin());
     GRAVERes2 = GRAVE(QU, N2, L2, M2, NR, RR2, GraveP2, GraveC2);
-
-    string potname2;
-    potname2 = "pot" + to_string(N2) + to_string(L2) + to_string(M2);
-    std::ofstream outFilePot2(potname2);
-    if (outFilePot2.is_open()) {
-        for (int i = 1; i < NR; ++i) {
-            outFilePot2 << RR2[i] << "\t" << GraveP2[i] << endl; 
-        }
-
-        outFilePot2.close(); 
-    }
-    else {
-        std::cerr << "Unable to open file";
-    }
-
-
-
 
     vector<double> couplings{};
     string name;
